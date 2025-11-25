@@ -40,6 +40,22 @@ android {
 }
 
 dependencies {
+    // Navegación y UI
+    implementation("androidx.navigation:navigation-compose:2.8.0")
+    implementation("androidx.compose.material:material-icons-extended:1.7.0")
+
+    // Red (Retrofit) y Datos
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // Imágenes (Coil) y Video (ExoPlayer)
+    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("androidx.media3:media3-exoplayer:1.4.0")
+    implementation("androidx.media3:media3-ui:1.4.0")
+
+    // Ciclo de vida
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
