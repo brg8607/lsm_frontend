@@ -159,4 +159,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+    fun obtenerSenaPorId(id: Int): Sena? {
+        return senas.find { it.id == id }
+    }
 }
