@@ -3,7 +3,6 @@ package com.example.applsm.ui
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
-// ELIMINADA: import androidx.annotation.OptIn (Causaba el conflicto)
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -51,6 +50,15 @@ import java.nio.charset.StandardCharsets
 val CyanLsm = Color(0xFF78d5fb)
 val PinkLsm = Color(0xFFFFB6C1)
 
+// URL BASE PARA RECURSOS
+const val BASE_URL_FILES = "http://10.0.2.2:3000"
+
+// Función para completar las URLs relativas que vienen del backend
+fun fixUrl(url: String?): String? {
+    if (url.isNullOrEmpty()) return null
+    return if (url.startsWith("http")) url else "$BASE_URL_FILES$url"
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(viewModel: AppViewModel = viewModel()) {
@@ -67,22 +75,18 @@ fun AppNavigation(viewModel: AppViewModel = viewModel()) {
             DictionaryScreen(navController, viewModel, catId, catName)
         }
 
-        composable("detail/{senaJson}") { backStackEntry ->
-            val json = backStackEntry.arguments?.getString("senaJson") ?: ""
-
-            val senaObjeto = remember(json) {
-                try {
-                    if (json.isNotEmpty()) Gson().fromJson(json, Sena::class.java) else null
-                } catch (e: Exception) {
-                    null
-                }
+        composable("detail/{senaId}") { backStackEntry ->
+            val senaId = backStackEntry.arguments?.getString("senaId")?.toIntOrNull()
+            val senaObjeto = remember(senaId) {
+                if (senaId != null) viewModel.obtenerSenaPorId(senaId) else null
             }
 
             if (senaObjeto != null) {
                 DetailScreen(navController, senaObjeto)
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Error al cargar la seña")
+                    Text("Error: Seña no encontrada o cargando...")
+                    Button(onClick = { navController.popBackStack() }) { Text("Volver") }
                 }
             }
         }
@@ -91,7 +95,8 @@ fun AppNavigation(viewModel: AppViewModel = viewModel()) {
     }
 }
 
-// 1. LOGIN SCREEN
+// --- PANTALLAS ---
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(nav: NavController, vm: AppViewModel) {
@@ -107,57 +112,24 @@ fun LoginScreen(nav: NavController, vm: AppViewModel) {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(modifier = Modifier.size(100.dp).clip(CircleShape).background(CyanLsm), contentAlignment = Alignment.Center) {
-            Text("👋", fontSize = 40.sp)
-        }
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Box(modifier = Modifier.size(100.dp).clip(CircleShape).background(CyanLsm), contentAlignment = Alignment.Center) { Text("👋", fontSize = 40.sp) }
         Spacer(Modifier.height(24.dp))
         Text("SignApp LSM", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
         Spacer(Modifier.height(32.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Correo") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
+        OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Correo") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
         Spacer(Modifier.height(16.dp))
-        OutlinedTextField(
-            value = pass,
-            onValueChange = { pass = it },
-            label = { Text("Contraseña") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
+        OutlinedTextField(value = pass, onValueChange = { pass = it }, label = { Text("Contraseña") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), singleLine = true)
         Spacer(Modifier.height(24.dp))
-
-        Button(
-            onClick = { vm.login(email, pass) { nav.navigate("home") { popUpTo("login") { inclusive = true } } } },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = CyanLsm)
-        ) {
+        Button(onClick = { vm.login(email, pass) { nav.navigate("home") { popUpTo("login") { inclusive = true } } } }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = CyanLsm)) {
             if (vm.uiState is UiState.Loading) CircularProgressIndicator(color = Color.White) else Text("Entrar")
         }
-
         Spacer(Modifier.height(16.dp))
-        TextButton(onClick = { nav.navigate("register") }) {
-            Text("¿No tienes cuenta? Regístrate aquí", color = PinkLsm)
-        }
-
-        Spacer(Modifier.height(8.dp))
-        TextButton(onClick = { vm.guestLogin { nav.navigate("home") } }) {
-            Text("Entrar como Invitado", color = Color.Gray)
-        }
+        TextButton(onClick = { nav.navigate("register") }) { Text("¿No tienes cuenta? Regístrate aquí", color = PinkLsm) }
+        TextButton(onClick = { vm.guestLogin { nav.navigate("home") } }) { Text("Entrar como Invitado", color = Color.Gray) }
     }
 }
 
-// 1.5 REGISTER SCREEN
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(nav: NavController, vm: AppViewModel) {
@@ -167,184 +139,71 @@ fun RegisterScreen(nav: NavController, vm: AppViewModel) {
     val context = LocalContext.current
     val uiState = vm.uiState
 
-    LaunchedEffect(uiState) {
-        if (uiState is UiState.Error) {
-            Toast.makeText(context, uiState.message, Toast.LENGTH_LONG).show()
-            vm.uiState = UiState.Idle
-        }
-    }
+    LaunchedEffect(uiState) { if (uiState is UiState.Error) { Toast.makeText(context, uiState.message, Toast.LENGTH_LONG).show(); vm.uiState = UiState.Idle } }
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Text("Crear Cuenta", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = CyanLsm)
         Spacer(Modifier.height(32.dp))
-
-        OutlinedTextField(
-            value = nombre,
-            onValueChange = { nombre = it },
-            label = { Text("Nombre completo") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
+        OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Correo electrónico") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
+        OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Correo") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = pass,
-            onValueChange = { pass = it },
-            label = { Text("Contraseña") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
+        OutlinedTextField(value = pass, onValueChange = { pass = it }, label = { Text("Contraseña") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(24.dp))
-
-        Button(
-            onClick = {
-                if (nombre.isNotEmpty() && email.isNotEmpty() && pass.isNotEmpty()) {
-                    vm.register(nombre, email, pass) {
-                        nav.navigate("home") { popUpTo("login") { inclusive = true } }
-                    }
-                } else {
-                    Toast.makeText(context, "Llena todos los campos", Toast.LENGTH_SHORT).show()
-                }
-            },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PinkLsm)
-        ) {
+        Button(onClick = { if (nombre.isNotEmpty() && email.isNotEmpty() && pass.isNotEmpty()) vm.register(nombre, email, pass) { nav.navigate("home") { popUpTo("login") { inclusive = true } } } else Toast.makeText(context, "Llena todo", Toast.LENGTH_SHORT).show() }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = PinkLsm)) {
             if (vm.uiState is UiState.Loading) CircularProgressIndicator(color = Color.White) else Text("Registrarse")
         }
-
-        Spacer(Modifier.height(16.dp))
-        TextButton(onClick = { nav.popBackStack() }) {
-            Text("Volver al Login", color = Color.Gray)
-        }
+        TextButton(onClick = { nav.popBackStack() }) { Text("Volver", color = Color.Gray) }
     }
 }
 
-// 2. HOME SCREEN
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(nav: NavController, vm: AppViewModel) {
     LaunchedEffect(Unit) { vm.cargarHome() }
-
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("Hola, ${vm.currentUserName ?: ""}", fontWeight = FontWeight.Bold)
-                        Text("¿Qué aprenderás hoy?", fontSize = 12.sp, style = MaterialTheme.typography.bodySmall)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { vm.logout { nav.navigate("login") } }) {
-                        Icon(Icons.Default.ExitToApp, "Salir")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { nav.navigate("dictionary/-1/Búsqueda Global") }, containerColor = PinkLsm) {
-                Icon(Icons.Default.Search, "Buscar")
-            }
-        }
+        topBar = { TopAppBar(title = { Column { Text("Hola, ${vm.currentUserName ?: ""}", fontWeight = FontWeight.Bold); Text("Aprende hoy", fontSize = 12.sp) } }, actions = { IconButton(onClick = { vm.logout { nav.navigate("login") } }) { Icon(Icons.Default.ExitToApp, "Salir") } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)) },
+        floatingActionButton = { FloatingActionButton(onClick = { nav.navigate("dictionary/-1/Búsqueda Global") }, containerColor = PinkLsm) { Icon(Icons.Default.Search, "Buscar") } }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).padding(16.dp)) {
             if (vm.currentUserType != "invitado") {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp)
-                        .clickable { nav.navigate("quiz") },
-                    colors = CardDefaults.cardColors(containerColor = CyanLsm)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize().padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text("Quiz del Día", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
-                            Text("Gana puntos hoy", color = Color.White)
-                        }
+                Card(modifier = Modifier.fillMaxWidth().height(100.dp).clickable { nav.navigate("quiz") }, colors = CardDefaults.cardColors(containerColor = CyanLsm)) {
+                    Row(modifier = Modifier.fillMaxSize().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column { Text("Quiz del Día", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp); Text("Gana puntos", color = Color.White) }
                         Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(40.dp))
                     }
                 }
                 Spacer(Modifier.height(24.dp))
             }
-
-            Text("Categorías", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Spacer(Modifier.height(8.dp))
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(vm.categorias) { cat ->
-                    CategoryItem(cat) {
-                        nav.navigate("dictionary/${cat.id}/${cat.nombre}")
-                    }
-                }
+            Text("Categorías", fontWeight = FontWeight.Bold, fontSize = 18.sp); Spacer(Modifier.height(8.dp))
+            LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(vm.categorias) { cat -> CategoryItem(cat) { nav.navigate("dictionary/${cat.id}/${cat.nombre}") } }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryItem(cat: Categoria, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier.clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(cat.iconUrl ?: "📁", fontSize = 32.sp)
-            Spacer(Modifier.height(8.dp))
-            Text(cat.nombre, fontWeight = FontWeight.Medium, maxLines = 1)
+    Card(modifier = Modifier.clickable { onClick() }, colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(cat.iconUrl ?: "📁", fontSize = 32.sp); Spacer(Modifier.height(8.dp)); Text(cat.nombre, fontWeight = FontWeight.Medium, maxLines = 1)
         }
     }
 }
 
-// 3. DICTIONARY SCREEN
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DictionaryScreen(nav: NavController, vm: AppViewModel, catId: Int?, catName: String) {
     var query by remember { mutableStateOf("") }
-
-    LaunchedEffect(catId) {
-        vm.buscarSenas("", if (catId != -1) catId else null)
-    }
+    LaunchedEffect(catId) { vm.buscarSenas("", if (catId != -1) catId else null) }
 
     Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.Default.ArrowBack, "Atrás") }
             OutlinedTextField(
                 value = query,
-                onValueChange = {
-                    query = it
-                    vm.buscarSenas(it, if (catId != -1) catId else null)
-                },
+                onValueChange = { query = it; vm.buscarSenas(it, if (catId != -1) catId else null) },
                 placeholder = { Text("Buscar en $catName...") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -356,28 +215,16 @@ fun DictionaryScreen(nav: NavController, vm: AppViewModel, catId: Int?, catName:
         } else {
             LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
                 items(vm.senas) { sena ->
+                    val fullImgUrl = fixUrl(sena.imagenUrl)
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp)
-                            .clickable {
-                                val json = URLEncoder.encode(Gson().toJson(sena), StandardCharsets.UTF_8.toString())
-                                nav.navigate("detail/$json")
-                            },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).clickable { nav.navigate("detail/${sena.id}") },
                         colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA))
                     ) {
                         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            if (!sena.imagenUrl.isNullOrEmpty()) {
-                                AsyncImage(
-                                    model = sena.imagenUrl,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(50.dp).clip(RoundedCornerShape(8.dp)),
-                                    contentScale = ContentScale.Crop
-                                )
+                            if (!fullImgUrl.isNullOrEmpty()) {
+                                AsyncImage(model = fullImgUrl, contentDescription = null, modifier = Modifier.size(50.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
                             } else {
-                                Box(Modifier.size(50.dp).background(Color.LightGray, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                                    Text("👐")
-                                }
+                                Box(Modifier.size(50.dp).background(Color.LightGray, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) { Text("👐") }
                             }
                             Spacer(Modifier.width(16.dp))
                             Text(sena.palabra, fontWeight = FontWeight.Bold, fontSize = 16.sp)
@@ -389,144 +236,108 @@ fun DictionaryScreen(nav: NavController, vm: AppViewModel, catId: Int?, catName:
     }
 }
 
-// 4. DETAIL SCREEN
-// Usamos la anotación completa de Android aquí para evitar conflictos con el OptIn de Kotlin
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun DetailScreen(nav: NavController, sena: Sena) {
     val context = LocalContext.current
 
-    LaunchedEffect(sena.videoUrl) {
-        Log.d("DEBUG_VIDEO", "Intentando reproducir: ${sena.videoUrl}")
+    val fullVideoUrl = remember(sena.videoUrl) { fixUrl(sena.videoUrl) }
+    val fullImageUrl = remember(sena.imagenUrl) { fixUrl(sena.imagenUrl) }
+
+    val isVideoValido = remember(fullVideoUrl) {
+        val url = fullVideoUrl
+        if (url.isNullOrEmpty()) {
+            false
+        } else {
+            !url.endsWith(".jpg", ignoreCase = true) &&
+                    !url.endsWith(".png", ignoreCase = true) &&
+                    !url.endsWith(".jpeg", ignoreCase = true)
+        }
+    }
+
+    LaunchedEffect(fullVideoUrl) {
+        Log.d("DEBUG_VIDEO", "ID: ${sena.id} | URL: $fullVideoUrl | VideoValido: $isVideoValido")
     }
 
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
             addListener(object : Player.Listener {
                 override fun onPlayerError(error: PlaybackException) {
-                    Log.e("DEBUG_VIDEO", "ERROR REPRODUCIENDO: ${error.message}")
-                    error.printStackTrace()
-                    Toast.makeText(context, "Error de video: ${error.errorCodeName}", Toast.LENGTH_LONG).show()
+                    Log.e("DEBUG_VIDEO", "Error Exo: ${error.message}")
                 }
             })
 
-            if (sena.videoUrl.isNotEmpty()) {
+            if (isVideoValido && fullVideoUrl != null) {
                 try {
-                    val mediaItem = MediaItem.fromUri(Uri.parse(sena.videoUrl))
-                    setMediaItem(mediaItem)
+                    setMediaItem(MediaItem.fromUri(Uri.parse(fullVideoUrl)))
                     prepare()
                     playWhenReady = true
                 } catch (e: Exception) {
-                    Log.e("DEBUG_VIDEO", "Excepción al cargar mediaItem: ${e.message}")
+                    Log.e("DEBUG_VIDEO", "Err: ${e.message}")
                 }
             }
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose { exoPlayer.release() }
-    }
+    DisposableEffect(Unit) { onDispose { exoPlayer.release() } }
 
     Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
         Box(modifier = Modifier.fillMaxWidth().height(300.dp).background(Color.Black)) {
-            if (sena.videoUrl.isNotEmpty()) {
-                AndroidView(factory = {
-                    PlayerView(context).apply { player = exoPlayer }
-                }, modifier = Modifier.fillMaxSize())
+            if (isVideoValido) {
+                AndroidView(factory = { PlayerView(context).apply { player = exoPlayer } }, modifier = Modifier.fillMaxSize())
             } else {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Video no disponible", color = Color.White)
+                if (!fullImageUrl.isNullOrEmpty()) {
+                    AsyncImage(model = fullImageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                } else {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.VideocamOff, null, tint = Color.White, modifier = Modifier.size(48.dp))
+                            Text("Sin contenido visual", color = Color.White)
+                        }
+                    }
                 }
             }
-            IconButton(
-                onClick = { nav.popBackStack() },
-                modifier = Modifier.padding(16.dp).align(Alignment.TopStart)
-            ) {
+            IconButton(onClick = { nav.popBackStack() }, modifier = Modifier.padding(16.dp).align(Alignment.TopStart)) {
                 Icon(Icons.Default.ArrowBack, "Atrás", tint = Color.White)
             }
         }
-
         Column(modifier = Modifier.padding(24.dp)) {
             Text(sena.palabra, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = CyanLsm)
-            Text(sena.categoriaNombre ?: "General", fontSize = 14.sp, color = Color.Gray)
-
-            Text(
-                text = "Debug URL: ${sena.videoUrl}",
-                fontSize = 10.sp,
-                color = Color.Red,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-
+            Text(sena.categoriaNombre ?: "LSM", fontSize = 14.sp, color = Color.Gray)
             Spacer(Modifier.height(16.dp))
             Text("Descripción", fontWeight = FontWeight.Bold)
-            Text(sena.descripcion ?: "Sin descripción disponible.", color = Color.DarkGray)
+            Text(sena.descripcion ?: "Aprende esta seña practicando frente al espejo.", color = Color.DarkGray)
         }
     }
 }
 
-// 5. QUIZ SCREEN
 @Composable
 fun QuizScreen(nav: NavController, vm: AppViewModel) {
     LaunchedEffect(Unit) { vm.cargarQuiz() }
-
     val quiz = vm.quizDelDia
     var currentIdx by remember { mutableStateOf(0) }
     var score by remember { mutableStateOf(0) }
     var finished by remember { mutableStateOf(false) }
 
-    if (vm.uiState is UiState.Loading) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        return
-    }
-
-    if (quiz == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No hay quiz disponible hoy")
-            Button(onClick = { nav.popBackStack() }) { Text("Volver") }
-        }
-        return
-    }
+    if (vm.uiState is UiState.Loading) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }; return }
+    if (quiz == null) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No hay quiz hoy"); Button(onClick = { nav.popBackStack() }) { Text("Volver") } }; return }
 
     if (finished) {
-        Column(
-            Modifier.fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Default.EmojiEvents, null, modifier = Modifier.size(100.dp), tint = Color(0xFFFFD700))
-            Text("¡Terminado!", fontSize = 28.sp, fontWeight = FontWeight.Bold)
-            Text("Puntuación: $score", fontSize = 20.sp)
-            Spacer(Modifier.height(24.dp))
-            Button(onClick = { nav.popBackStack() }) { Text("Volver a Inicio") }
+            Text("¡Terminado!", fontSize = 28.sp, fontWeight = FontWeight.Bold); Text("Puntuación: $score", fontSize = 20.sp)
+            Spacer(Modifier.height(24.dp)); Button(onClick = { nav.popBackStack() }) { Text("Inicio") }
         }
         return
     }
-
     val question = quiz.preguntas.getOrNull(currentIdx)
-
     if (question != null) {
         Column(Modifier.fillMaxSize().padding(16.dp)) {
-            LinearProgressIndicator(
-                progress = { (currentIdx + 1) / quiz.preguntas.size.toFloat() },
-                modifier = Modifier.fillMaxWidth(),
-                color = PinkLsm,
-            )
-            Spacer(Modifier.height(16.dp))
-            Text("Pregunta ${currentIdx + 1}", color = Color.Gray)
-            Text(question.texto, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-
+            LinearProgressIndicator(progress = { (currentIdx + 1) / quiz.preguntas.size.toFloat() }, modifier = Modifier.fillMaxWidth(), color = PinkLsm)
+            Spacer(Modifier.height(16.dp)); Text("Pregunta ${currentIdx + 1}", color = Color.Gray); Text(question.texto, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(24.dp))
-
             question.opciones.forEach { opt ->
-                OutlinedButton(
-                    onClick = {
-                        score += 10
-                        if (currentIdx < quiz.preguntas.size - 1) currentIdx++ else finished = true
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                ) {
-                    Text(opt, fontSize = 18.sp, color = Color.Black)
-                }
+                OutlinedButton(onClick = { score += 10; if (currentIdx < quiz.preguntas.size - 1) currentIdx++ else finished = true }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) { Text(opt, fontSize = 18.sp, color = Color.Black) }
             }
         }
     }
