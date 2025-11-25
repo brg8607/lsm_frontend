@@ -64,6 +64,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // NUEVA FUNCIÓN: REGISTRO
+    fun register(nombre: String, email: String, pass: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            uiState = UiState.Loading
+            try {
+                val response = repo.register(nombre, email, pass)
+                if (response.isSuccessful && response.body()?.token != null) {
+                    val body = response.body()!!
+                    // Guardar sesión automáticamente tras registro
+                    repo.saveSession(body.token!!, body.usuario?.nombre ?: nombre, body.usuario?.tipoUsuario ?: "normal")
+                    uiState = UiState.Success
+                    onSuccess()
+                } else {
+                    uiState = UiState.Error("Error al registrar: ${response.code()} (El correo podría ya existir)")
+                }
+            } catch (e: Exception) {
+                uiState = UiState.Error("Error de conexión: ${e.message}")
+            }
+        }
+    }
+
     fun guestLogin(onSuccess: () -> Unit) {
         viewModelScope.launch {
             uiState = UiState.Loading
@@ -97,7 +118,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 // Cargar Progreso (si no es invitado)
                 if (currentUserType != "invitado") {
                     val progRes = repo.getProgreso()
-                    // CORRECCIÓN AQUÍ: Verificamos que progRes no sea nulo antes de usarlo
                     if (progRes != null && progRes.isSuccessful) {
                         progreso = progRes.body() ?: emptyList()
                     }
@@ -128,7 +148,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             uiState = UiState.Loading
             try {
                 val res = repo.getQuizDia()
-                // CORRECCIÓN AQUÍ: Verificamos nulidad también para el quiz por consistencia
                 if (res != null && res.isSuccessful) {
                     quizDelDia = res.body()
                     uiState = UiState.Success

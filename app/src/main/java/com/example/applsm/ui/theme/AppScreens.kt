@@ -1,8 +1,9 @@
 package com.example.applsm.ui
 
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
-// Se eliminó androidx.annotation.OptIn para usar la nativa de Kotlin si es necesario o directa
+// ELIMINADA: import androidx.annotation.OptIn (Causaba el conflicto)
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,6 +31,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
@@ -48,13 +51,14 @@ import java.nio.charset.StandardCharsets
 val CyanLsm = Color(0xFF78d5fb)
 val PinkLsm = Color(0xFFFFB6C1)
 
-@OptIn(ExperimentalMaterial3Api::class) // Solución explícita
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(viewModel: AppViewModel = viewModel()) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "login") {
         composable("login") { LoginScreen(navController, viewModel) }
+        composable("register") { RegisterScreen(navController, viewModel) }
         composable("home") { HomeScreen(navController, viewModel) }
 
         composable("dictionary/{catId}/{catName}") { backStackEntry ->
@@ -66,7 +70,6 @@ fun AppNavigation(viewModel: AppViewModel = viewModel()) {
         composable("detail/{senaJson}") { backStackEntry ->
             val json = backStackEntry.arguments?.getString("senaJson") ?: ""
 
-            // Parseamos el objeto FUERA de la llamada a la UI para evitar try-catch en composable
             val senaObjeto = remember(json) {
                 try {
                     if (json.isNotEmpty()) Gson().fromJson(json, Sena::class.java) else null
@@ -143,14 +146,95 @@ fun LoginScreen(nav: NavController, vm: AppViewModel) {
         }
 
         Spacer(Modifier.height(16.dp))
+        TextButton(onClick = { nav.navigate("register") }) {
+            Text("¿No tienes cuenta? Regístrate aquí", color = PinkLsm)
+        }
+
+        Spacer(Modifier.height(8.dp))
         TextButton(onClick = { vm.guestLogin { nav.navigate("home") } }) {
             Text("Entrar como Invitado", color = Color.Gray)
         }
     }
 }
 
+// 1.5 REGISTER SCREEN
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RegisterScreen(nav: NavController, vm: AppViewModel) {
+    var nombre by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var pass by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val uiState = vm.uiState
+
+    LaunchedEffect(uiState) {
+        if (uiState is UiState.Error) {
+            Toast.makeText(context, uiState.message, Toast.LENGTH_LONG).show()
+            vm.uiState = UiState.Idle
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Crear Cuenta", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = CyanLsm)
+        Spacer(Modifier.height(32.dp))
+
+        OutlinedTextField(
+            value = nombre,
+            onValueChange = { nombre = it },
+            label = { Text("Nombre completo") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        Spacer(Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Correo electrónico") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        Spacer(Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = pass,
+            onValueChange = { pass = it },
+            label = { Text("Contraseña") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+        Spacer(Modifier.height(24.dp))
+
+        Button(
+            onClick = {
+                if (nombre.isNotEmpty() && email.isNotEmpty() && pass.isNotEmpty()) {
+                    vm.register(nombre, email, pass) {
+                        nav.navigate("home") { popUpTo("login") { inclusive = true } }
+                    }
+                } else {
+                    Toast.makeText(context, "Llena todos los campos", Toast.LENGTH_SHORT).show()
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = PinkLsm)
+        ) {
+            if (vm.uiState is UiState.Loading) CircularProgressIndicator(color = Color.White) else Text("Registrarse")
+        }
+
+        Spacer(Modifier.height(16.dp))
+        TextButton(onClick = { nav.popBackStack() }) {
+            Text("Volver al Login", color = Color.Gray)
+        }
+    }
+}
+
 // 2. HOME SCREEN
-@OptIn(ExperimentalMaterial3Api::class) // Necesario para Scaffold y TopAppBar
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(nav: NavController, vm: AppViewModel) {
     LaunchedEffect(Unit) { vm.cargarHome() }
@@ -220,7 +304,7 @@ fun HomeScreen(nav: NavController, vm: AppViewModel) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class) // Necesario para Card en algunas versiones
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryItem(cat: Categoria, onClick: () -> Unit) {
     Card(
@@ -305,19 +389,36 @@ fun DictionaryScreen(nav: NavController, vm: AppViewModel, catId: Int?, catName:
     }
 }
 
-// 4. DETAIL SCREEN (VIDEO)
+// 4. DETAIL SCREEN
+// Usamos la anotación completa de Android aquí para evitar conflictos con el OptIn de Kotlin
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun DetailScreen(nav: NavController, sena: Sena) {
     val context = LocalContext.current
 
+    LaunchedEffect(sena.videoUrl) {
+        Log.d("DEBUG_VIDEO", "Intentando reproducir: ${sena.videoUrl}")
+    }
+
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
+            addListener(object : Player.Listener {
+                override fun onPlayerError(error: PlaybackException) {
+                    Log.e("DEBUG_VIDEO", "ERROR REPRODUCIENDO: ${error.message}")
+                    error.printStackTrace()
+                    Toast.makeText(context, "Error de video: ${error.errorCodeName}", Toast.LENGTH_LONG).show()
+                }
+            })
+
             if (sena.videoUrl.isNotEmpty()) {
-                val mediaItem = MediaItem.fromUri(Uri.parse(sena.videoUrl))
-                setMediaItem(mediaItem)
-                prepare()
-                playWhenReady = true
+                try {
+                    val mediaItem = MediaItem.fromUri(Uri.parse(sena.videoUrl))
+                    setMediaItem(mediaItem)
+                    prepare()
+                    playWhenReady = true
+                } catch (e: Exception) {
+                    Log.e("DEBUG_VIDEO", "Excepción al cargar mediaItem: ${e.message}")
+                }
             }
         }
     }
@@ -348,8 +449,15 @@ fun DetailScreen(nav: NavController, sena: Sena) {
         Column(modifier = Modifier.padding(24.dp)) {
             Text(sena.palabra, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = CyanLsm)
             Text(sena.categoriaNombre ?: "General", fontSize = 14.sp, color = Color.Gray)
-            Spacer(Modifier.height(16.dp))
 
+            Text(
+                text = "Debug URL: ${sena.videoUrl}",
+                fontSize = 10.sp,
+                color = Color.Red,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+
+            Spacer(Modifier.height(16.dp))
             Text("Descripción", fontWeight = FontWeight.Bold)
             Text(sena.descripcion ?: "Sin descripción disponible.", color = Color.DarkGray)
         }
