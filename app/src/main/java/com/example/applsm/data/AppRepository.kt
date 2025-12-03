@@ -62,7 +62,7 @@ class AppRepository(private val context: Context) {
     suspend fun getSenas(catId: Int? = null, query: String? = null) =
         RetrofitClient.api.getSenas(catId, query)
 
-    // --- NUEVAS FUNCIONES DE CURSO Y QUIZ ---
+    // --- FUNCIONES DE CURSO Y QUIZ ---
 
     suspend fun generarQuiz(catId: Int? = null, nivel: Int = 1) = getToken()?.let { token ->
         RetrofitClient.api.generarQuizDinamico("Bearer $token", catId, nivel)
@@ -72,7 +72,6 @@ class AppRepository(private val context: Context) {
         RetrofitClient.api.getRacha("Bearer $token")
     }
 
-    // CORRECCIÓN CRÍTICA: Usamos el objeto ProgresoRequest en lugar de Map genérico
     suspend fun guardarProgreso(catId: Int, nivel: Int, indice: Int) = getToken()?.let { token ->
         val request = ProgresoRequest(catId, nivel, indice)
         RetrofitClient.api.guardarProgreso("Bearer $token", request)
@@ -86,13 +85,10 @@ class AppRepository(private val context: Context) {
         RetrofitClient.api.getProgresoMapa("Bearer $token")
     }
 
-    // --- FUNCIONES LEGACY ---
-
     suspend fun getQuizDia() = getToken()?.let {
         RetrofitClient.api.getQuizDelDia("Bearer $it")
     }
 
-    // CORRECCIÓN: Usamos ResultadoQuizRequest
     suspend fun enviarResultadoQuiz(puntaje: Int, quizId: Int) = getToken()?.let {
         val request = ResultadoQuizRequest(quizId, puntaje)
         RetrofitClient.api.enviarResultado("Bearer $it", request)
@@ -101,6 +97,9 @@ class AppRepository(private val context: Context) {
     suspend fun getProgreso() = getToken()?.let {
         RetrofitClient.api.getProgreso("Bearer $it")
     }
+
+    // --- PUNTOS ---
+
     suspend fun getPuntos(): Response<PuntosResponse>? {
         val token = getToken() ?: return null
         return try {
@@ -119,6 +118,8 @@ class AppRepository(private val context: Context) {
         }
     }
 
+    // --- QUIZ DIARIO ---
+
     suspend fun getEstadoQuizDiario(): Response<EstadoQuizDiarioResponse>? {
         val token = getToken() ?: return null
         return try {
@@ -135,5 +136,15 @@ class AppRepository(private val context: Context) {
         } catch (e: Exception) {
             null
         }
+    }
+
+    // --- FUNCIONES DE ADMIN ---
+
+    suspend fun getAdminUserStats() = getToken()?.let { token ->
+        RetrofitClient.api.getAdminUserStats("Bearer $token")
+    }
+
+    suspend fun getAdminUserProgressDetail(userId: Int) = getToken()?.let { token ->
+        RetrofitClient.api.getAdminUserProgressDetail("Bearer $token", userId)
     }
 }

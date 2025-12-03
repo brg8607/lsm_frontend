@@ -48,7 +48,6 @@ data class Pregunta(
     @SerializedName("video_asociado_url") val videoUrl: String?,
     @SerializedName("imagen_asociada_url") val imagenUrl: String?,
     @SerializedName("opciones") val opciones: List<String>,
-    // CORRECCIÓN: Mapeamos 'respuesta_correcta' del backend a 'respuestaCorrecta'
     @SerializedName("respuesta_correcta") val respuestaCorrecta: String?
 )
 
@@ -75,11 +74,12 @@ data class ResultadoQuizRequest(
     @SerializedName("puntaje") val puntaje: Int
 )
 
+// CORREGIDO: Mapeo correcto del backend (id, nivel, indice)
 data class ProgresoCategoria(
     @SerializedName("id") val categoriaId: Int,
     @SerializedName("nivel") val nivelActual: Int,
     @SerializedName("indice") val preguntasCompletadas: Int,
-    @SerializedName("total_preguntas") val totalPreguntas: Int = 10, // Default a 10 si no viene
+    @SerializedName("total_preguntas") val totalPreguntas: Int = 10,
     @SerializedName("completado") val completado: Boolean,
     @SerializedName("bloqueado") val bloqueado: Boolean
 )
@@ -96,6 +96,90 @@ data class Progreso(
     val nombre: String,
     val porcentaje: Int
 )
+
+// --- PUNTOS ---
+data class PuntosResponse(
+    @SerializedName("puntos") val puntos: Int,
+    @SerializedName("mensaje") val mensaje: String? = null,
+    @SerializedName("total_puntos") val totalPuntos: Int? = null
+)
+
+data class SumarPuntosRequest(
+    val puntos: Int
+)
+
+// --- QUIZ DIARIO ---
+data class EstadoQuizDiarioResponse(
+    val completado: Boolean,
+    val puntuacion: Int? = null,
+    val fecha: String
+)
+
+data class CompletarQuizDiarioRequest(
+    val puntuacion: Int
+)
+
+data class CompletarQuizDiarioResponse(
+    val mensaje: String,
+    val puntuacion: Int,
+    val fecha: String
+)
+
+// --- MODELOS DE DATOS PARA ADMIN ---
+
+data class AdminUserStat(
+    val id: Int,
+    val nombre: String,
+    val correo: String?,
+    @SerializedName("tipo_usuario") val tipoUsuario: String,
+    @SerializedName("fecha_registro") val fechaRegistro: String?,
+    @SerializedName("quizzes_completados") val quizzesCompletados: Int,
+    @SerializedName("progreso_promedio") val progresoPromedio: Double,
+    @SerializedName("ultima_actividad") val ultimaActividad: String?
+)
+
+data class AdminUserDetail(
+    val usuario: AdminUserInfo,
+    @SerializedName("progreso_categorias") val progresoCategorias: List<AdminUserCategoryProgress>,
+    @SerializedName("historial_quizzes") val historialQuizzes: List<AdminUserQuizHistory>,
+    val resumen: AdminUserSummary
+)
+
+data class AdminUserInfo(
+    val id: Int,
+    val nombre: String,
+    val correo: String?,
+    @SerializedName("tipo_usuario") val tipoUsuario: String,
+    @SerializedName("fecha_registro") val fechaRegistro: String?
+)
+
+data class AdminUserCategoryProgress(
+    @SerializedName("categoria_id") val categoriaId: Int,
+    @SerializedName("categoria_nombre") val categoriaNombre: String,
+    @SerializedName("icon_url") val iconUrl: String?,
+    @SerializedName("porcentaje_completado") val porcentajeCompletado: Int,
+    @SerializedName("ultimo_acceso") val ultimoAcceso: String?,
+    val nivel: Int?,
+    @SerializedName("indice_pregunta") val indicePregunta: Int?,
+    val completado: Boolean?
+)
+
+data class AdminUserQuizHistory(
+    val id: Int,
+    @SerializedName("quiz_id") val quizId: Int?,
+    val puntaje: Int,
+    @SerializedName("fecha_realizacion") val fechaRealizacion: String,
+    val titulo: String?
+)
+
+data class AdminUserSummary(
+    @SerializedName("total_categorias") val totalCategorias: Int,
+    @SerializedName("categorias_completadas") val categoriasCompletadas: Int,
+    @SerializedName("quizzes_realizados") val quizzesRealizados: Int,
+    @SerializedName("promedio_puntaje") val promedioPuntaje: String
+)
+
+// --- INTERFAZ DE SERVICIO API ---
 
 interface ApiService {
     @POST("api/auth/login")
@@ -181,33 +265,17 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body request: CompletarQuizDiarioRequest
     ): Response<CompletarQuizDiarioResponse>
+
+    // --- ENDPOINTS DE ADMIN ---
+    @GET("api/admin/stats/users")
+    suspend fun getAdminUserStats(@Header("Authorization") token: String): Response<List<AdminUserStat>>
+
+    @GET("api/admin/stats/progress/{userId}")
+    suspend fun getAdminUserProgressDetail(
+        @Header("Authorization") token: String,
+        @Path("userId") userId: Int
+    ): Response<AdminUserDetail>
 }
-
-data class PuntosResponse(
-    @SerializedName("puntos") val puntos: Int,
-    @SerializedName("mensaje") val mensaje: String? = null,
-    @SerializedName("total_puntos") val totalPuntos: Int? = null // Para la respuesta de sumar
-)
-
-data class SumarPuntosRequest(
-    val puntos: Int
-)
-
-data class EstadoQuizDiarioResponse(
-    val completado: Boolean,
-    val puntuacion: Int? = null,
-    val fecha: String
-)
-
-data class CompletarQuizDiarioRequest(
-    val puntuacion: Int
-)
-
-data class CompletarQuizDiarioResponse(
-    val mensaje: String,
-    val puntuacion: Int,
-    val fecha: String
-)
 
 object RetrofitClient {
     private const val BASE_URL = "http://10.0.2.2:3000/"
