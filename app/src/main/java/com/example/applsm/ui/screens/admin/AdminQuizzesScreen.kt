@@ -59,7 +59,7 @@ fun AdminQuizzesScreen(nav: NavController, vm: AppViewModel) {
     ) { paddingValues ->
         Column(
             modifier = Modifier
-                .fillMaxSize
+                .fillMaxSize()
                 .padding(paddingValues)
                 .background(GrayBg)
         ) {
