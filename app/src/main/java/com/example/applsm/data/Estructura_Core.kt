@@ -36,6 +36,13 @@ data class Sena(
     @SerializedName("categoria_nombre") val categoriaNombre: String?
 )
 
+data class CrearSenaRequest(
+    val palabra: String,
+    @SerializedName("categoria_id") val categoriaId: Int,
+    val descripcion: String? = null,
+    val video: String? = null
+)
+
 data class Quiz(
     val id: Long?,
     val titulo: String,
@@ -327,14 +334,14 @@ interface ApiService {
     @POST("api/admin/senas")
     suspend fun crearSena(
         @Header("Authorization") token: String,
-        @Body data: Map<String, Any?>
+        @Body data: CrearSenaRequest
     ): Response<Map<String, Any>>
 
     @PUT("api/admin/senas/{id}")
     suspend fun editarSena(
         @Header("Authorization") token: String,
         @Path("id") id: Int,
-        @Body data: Map<String, Any?>
+        @Body data: CrearSenaRequest
     ): Response<Map<String, String>>
 
     @DELETE("api/admin/senas/{id}")
