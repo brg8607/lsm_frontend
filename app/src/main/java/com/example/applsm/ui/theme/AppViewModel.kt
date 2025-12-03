@@ -35,6 +35,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var rachaDias by mutableStateOf(0)
     var estadoProgreso by mutableStateOf<EstadoProgreso?>(null)
 
+    // --- ADMIN STATE ---
+    var adminUserStats by mutableStateOf<List<AdminUserStat>>(emptyList())
+    var adminUserDetail by mutableStateOf<AdminUserDetail?>(null)
+
     init {
         checkSession()
     }
@@ -49,59 +53,62 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // --- AUTH ---
-    fun login(email: String, pass: String, onSuccess: () -> Unit) {
+    fun login(email: String, pass: String, onSuccess: (userType: String) -> Unit) {
         viewModelScope.launch {
             uiState = UiState.Loading
             try {
                 val response = repo.login(email, pass)
                 if (response.isSuccessful && response.body()?.token != null) {
                     val body = response.body()!!
-                    repo.saveSession(body.token!!, body.usuario?.nombre ?: "Usuario", body.usuario?.tipoUsuario ?: "normal")
+                    val userType = body.usuario?.tipoUsuario ?: "normal"
+                    repo.saveSession(body.token!!, body.usuario?.nombre ?: "Usuario", userType)
                     uiState = UiState.Success
-                    onSuccess()
+                    onSuccess(userType)
                 } else uiState = UiState.Error("Credenciales incorrectas")
             } catch (e: Exception) { uiState = UiState.Error("Error de red: ${e.message}") }
         }
     }
 
-    fun loginWithGoogle(idToken: String, name: String, email: String, googleId: String, onSuccess: () -> Unit) {
+    fun loginWithGoogle(idToken: String, name: String, email: String, googleId: String, onSuccess: (userType: String) -> Unit) {
         viewModelScope.launch {
             uiState = UiState.Loading
             try {
                 val response = repo.googleLogin(idToken, name, email, googleId)
                 if (response.isSuccessful && response.body()?.token != null) {
                     val body = response.body()!!
-                    repo.saveSession(body.token!!, body.usuario?.nombre ?: name, body.usuario?.tipoUsuario ?: "normal")
+                    val userType = body.usuario?.tipoUsuario ?: "normal"
+                    repo.saveSession(body.token!!, body.usuario?.nombre ?: name, userType)
                     uiState = UiState.Success
-                    onSuccess()
+                    onSuccess(userType)
                 } else uiState = UiState.Error("Error Google Login")
             } catch (e: Exception) { uiState = UiState.Error("Error de red") }
         }
     }
 
-    fun guestLogin(onSuccess: () -> Unit) {
+    fun guestLogin(onSuccess: (userType: String) -> Unit) {
         viewModelScope.launch {
             uiState = UiState.Loading
             try {
                 val response = repo.guestLogin()
                 if (response.isSuccessful) {
                     repo.saveSession(response.body()!!.token!!, "Invitado", "invitado")
-                    onSuccess()
+                    onSuccess("invitado")
                 }
             } catch (e: Exception) { uiState = UiState.Error("Error invitado") }
         }
     }
 
-    fun register(nombre: String, email: String, pass: String, onSuccess: () -> Unit) {
+    fun register(nombre: String, email: String, pass: String, onSuccess: (userType: String) -> Unit) {
         viewModelScope.launch {
             uiState = UiState.Loading
             try {
                 val response = repo.register(nombre, email, pass)
                 if (response.isSuccessful && response.body()?.token != null) {
                     val body = response.body()!!
-                    repo.saveSession(body.token!!, body.usuario?.nombre ?: nombre, body.usuario?.tipoUsuario ?: "normal")
+                    val userType = body.usuario?.tipoUsuario ?: "normal"
+                    repo.saveSession(body.token!!, body.usuario?.nombre ?: nombre, userType)
                     uiState = UiState.Success
-                    onSuccess()
+                    onSuccess(userType)
                 } else uiState = UiState.Error("Error registro")
             } catch (e: Exception) { uiState = UiState.Error("Error red") }
         }
@@ -259,5 +266,41 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun obtenerSenaPorId(id: Int): Sena? {
         return senas.find { it.id == id }
+    }
+
+    // --- FUNCIONES DE ADMIN ---
+    fun loadAdminUserStats() {
+        viewModelScope.launch {
+            uiState = UiState.Loading
+            try {
+                val response = repo.getAdminUserStats()
+                if (response != null && response.isSuccessful) {
+                    adminUserStats = response.body() ?: emptyList()
+                    uiState = UiState.Success
+                } else {
+                    uiState = UiState.Error("Error al cargar estadísticas de usuarios: ${response?.code()}")
+                }
+            } catch (e: Exception) {
+                uiState = UiState.Error("Error de red: ${e.message}")
+            }
+        }
+    }
+
+    fun loadAdminUserDetail(userId: Int) {
+        viewModelScope.launch {
+            uiState = UiState.Loading
+            adminUserDetail = null // Limpiar detalle anterior
+            try {
+                val response = repo.getAdminUserProgressDetail(userId)
+                if (response != null && response.isSuccessful) {
+                    adminUserDetail = response.body()
+                    uiState = UiState.Success
+                } else {
+                    uiState = UiState.Error("Error al cargar detalles del usuario: ${response?.code()}")
+                }
+            } catch (e: Exception) {
+                uiState = UiState.Error("Error de red: ${e.message}")
+            }
+        }
     }
 }
