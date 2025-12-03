@@ -8,16 +8,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
-// Configuración de DataStore (Base de datos local pequeñita para el token)
 private val Context.dataStore by preferencesDataStore("user_prefs")
 
 class AppRepository(private val context: Context) {
 
     private val TOKEN_KEY = stringPreferencesKey("jwt_token")
     private val USER_NAME_KEY = stringPreferencesKey("user_name")
-    private val USER_TYPE_KEY = stringPreferencesKey("user_type") // 'normal', 'admin', 'invitado'
-
-    // --- GESTIÓN DE TOKEN Y SESIÓN ---
+    private val USER_TYPE_KEY = stringPreferencesKey("user_type")
 
     val userToken: Flow<String?> = context.dataStore.data.map { it[TOKEN_KEY] }
     val userName: Flow<String?> = context.dataStore.data.map { it[USER_NAME_KEY] }
@@ -39,7 +36,6 @@ class AppRepository(private val context: Context) {
 
     // --- LLAMADAS A LA API ---
 
-    // Auth
     suspend fun login(correo: String, pass: String) = RetrofitClient.api.login(
         mapOf("correo" to correo, "password" to pass)
     )
@@ -48,24 +44,59 @@ class AppRepository(private val context: Context) {
         mapOf("nombre" to nombre, "correo" to correo, "password" to pass)
     )
 
+    suspend fun googleLogin(idToken: String, name: String, email: String, googleId: String) =
+        RetrofitClient.api.googleLogin(
+            mapOf(
+                "token_google" to idToken,
+                "nombre" to name,
+                "correo" to email,
+                "google_uid" to googleId
+            )
+        )
+
     suspend fun guestLogin() = RetrofitClient.api.guestLogin()
 
-    // Contenido
     suspend fun getCategorias() = RetrofitClient.api.getCategorias()
 
     suspend fun getSenas(catId: Int? = null, query: String? = null) =
         RetrofitClient.api.getSenas(catId, query)
 
-    // Quiz
+    // --- NUEVAS FUNCIONES DE CURSO Y QUIZ ---
+
+    suspend fun generarQuiz(catId: Int? = null, nivel: Int = 1) = getToken()?.let { token ->
+        RetrofitClient.api.generarQuizDinamico("Bearer $token", catId, nivel)
+    }
+
+    suspend fun getRacha() = getToken()?.let { token ->
+        RetrofitClient.api.getRacha("Bearer $token")
+    }
+
+    // CORRECCIÓN CRÍTICA: Usamos el objeto ProgresoRequest en lugar de Map genérico
+    suspend fun guardarProgreso(catId: Int, nivel: Int, indice: Int) = getToken()?.let { token ->
+        val request = ProgresoRequest(catId, nivel, indice)
+        RetrofitClient.api.guardarProgreso("Bearer $token", request)
+    }
+
+    suspend fun getProgresoActual() = getToken()?.let { token ->
+        RetrofitClient.api.getProgresoActual("Bearer $token")
+    }
+
+    suspend fun getProgresoMapa() = getToken()?.let { token ->
+        RetrofitClient.api.getProgresoMapa("Bearer $token")
+    }
+
+    // --- FUNCIONES LEGACY ---
+
     suspend fun getQuizDia() = getToken()?.let {
         RetrofitClient.api.getQuizDelDia("Bearer $it")
     }
 
+    // CORRECCIÓN: Usamos ResultadoQuizRequest
     suspend fun enviarResultadoQuiz(puntaje: Int, quizId: Int) = getToken()?.let {
-        RetrofitClient.api.enviarResultado("Bearer $it", mapOf("quiz_id" to quizId, "puntaje" to puntaje))
+        val request = ResultadoQuizRequest(quizId, puntaje)
+        RetrofitClient.api.enviarResultado("Bearer $it", request)
     }
 
-    // Progreso
     suspend fun getProgreso() = getToken()?.let {
         RetrofitClient.api.getProgreso("Bearer $it")
     }

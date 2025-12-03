@@ -2,6 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+
+    //Firebase
+    //id("com.android.application")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -40,6 +44,12 @@ android {
 }
 
 dependencies {
+    //Sing in with Google
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
+
+    //FireBase
+    implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
+
     // Navegación y UI
     implementation("androidx.navigation:navigation-compose:2.8.0")
     implementation("androidx.compose.material:material-icons-extended:1.7.0")

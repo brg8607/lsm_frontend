@@ -1,6 +1,7 @@
 package com.example.applsm.ui
 
 import android.app.Application
+import android.util.Log // IMPORTANTE: Necesario para los logs
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,7 +10,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.applsm.data.*
 import kotlinx.coroutines.launch
 
-// Estado global de la UI
 sealed class UiState {
     object Loading : UiState()
     object Success : UiState()
@@ -24,11 +24,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var currentUserType by mutableStateOf<String?>(null)
     var currentUserName by mutableStateOf<String?>(null)
 
-    // Datos
+    // Datos Principales
     var categorias by mutableStateOf<List<Categoria>>(emptyList())
     var senas by mutableStateOf<List<Sena>>(emptyList())
+
+    // --- VARIABLES DE ESTADO ---
     var quizDelDia by mutableStateOf<Quiz?>(null)
-    var progreso by mutableStateOf<List<Progreso>>(emptyList())
+    var mapaProgreso by mutableStateOf<Map<Int, ProgresoCategoria>>(emptyMap())
+    var ultimoProgreso by mutableStateOf<UltimoProgreso?>(null)
+    var rachaDias by mutableStateOf(0)
+    var estadoProgreso by mutableStateOf<EstadoProgreso?>(null)
 
     init {
         checkSession()
@@ -43,8 +48,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- ACCIONES ---
-
+    // --- AUTH ---
     fun login(email: String, pass: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
             uiState = UiState.Loading
@@ -55,33 +59,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     repo.saveSession(body.token!!, body.usuario?.nombre ?: "Usuario", body.usuario?.tipoUsuario ?: "normal")
                     uiState = UiState.Success
                     onSuccess()
-                } else {
-                    uiState = UiState.Error("Error: ${response.code()} - Revise sus credenciales")
-                }
-            } catch (e: Exception) {
-                uiState = UiState.Error("Error de conexión: ${e.message}")
-            }
+                } else uiState = UiState.Error("Credenciales incorrectas")
+            } catch (e: Exception) { uiState = UiState.Error("Error de red: ${e.message}") }
         }
     }
 
-    // NUEVA FUNCIÓN: REGISTRO
-    fun register(nombre: String, email: String, pass: String, onSuccess: () -> Unit) {
+    fun loginWithGoogle(idToken: String, name: String, email: String, googleId: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
             uiState = UiState.Loading
             try {
-                val response = repo.register(nombre, email, pass)
+                val response = repo.googleLogin(idToken, name, email, googleId)
                 if (response.isSuccessful && response.body()?.token != null) {
                     val body = response.body()!!
-                    // Guardar sesión automáticamente tras registro
-                    repo.saveSession(body.token!!, body.usuario?.nombre ?: nombre, body.usuario?.tipoUsuario ?: "normal")
+                    repo.saveSession(body.token!!, body.usuario?.nombre ?: name, body.usuario?.tipoUsuario ?: "normal")
                     uiState = UiState.Success
                     onSuccess()
-                } else {
-                    uiState = UiState.Error("Error al registrar: ${response.code()} (El correo podría ya existir)")
-                }
-            } catch (e: Exception) {
-                uiState = UiState.Error("Error de conexión: ${e.message}")
-            }
+                } else uiState = UiState.Error("Error Google Login")
+            } catch (e: Exception) { uiState = UiState.Error("Error de red") }
         }
     }
 
@@ -91,13 +85,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val response = repo.guestLogin()
                 if (response.isSuccessful) {
-                    val body = response.body()!!
-                    repo.saveSession(body.token!!, "Invitado", "invitado")
+                    repo.saveSession(response.body()!!.token!!, "Invitado", "invitado")
                     onSuccess()
                 }
-            } catch (e: Exception) {
-                uiState = UiState.Error("Error al entrar como invitado")
-            }
+            } catch (e: Exception) { uiState = UiState.Error("Error invitado") }
+        }
+    }
+
+    fun register(nombre: String, email: String, pass: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            uiState = UiState.Loading
+            try {
+                val response = repo.register(nombre, email, pass)
+                if (response.isSuccessful && response.body()?.token != null) {
+                    val body = response.body()!!
+                    repo.saveSession(body.token!!, body.usuario?.nombre ?: nombre, body.usuario?.tipoUsuario ?: "normal")
+                    uiState = UiState.Success
+                    onSuccess()
+                } else uiState = UiState.Error("Error registro")
+            } catch (e: Exception) { uiState = UiState.Error("Error red") }
         }
     }
 
@@ -108,57 +114,127 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // --- CARGA DE DATOS HOME ---
     fun cargarHome() {
         viewModelScope.launch {
+            Log.d("DEBUG_APP", "cargarHome: Iniciando actualización de datos...")
             try {
-                // Cargar Categorias
+                // 1. Categorías
                 val catRes = repo.getCategorias()
-                if (catRes.isSuccessful) categorias = catRes.body() ?: emptyList()
+                if (catRes.isSuccessful) {
+                    categorias = catRes.body() ?: emptyList()
+                    Log.d("DEBUG_APP", "Categorías cargadas: ${categorias.size}")
+                } else {
+                    Log.e("DEBUG_APP", "Error al cargar categorías: ${catRes.code()}")
+                }
 
-                // Cargar Progreso (si no es invitado)
                 if (currentUserType != "invitado") {
-                    val progRes = repo.getProgreso()
+                    // 2. Mapa de Progreso
+                    val mapaRes = repo.getProgresoMapa()
+                    if (mapaRes != null && mapaRes.isSuccessful) {
+                        mapaProgreso = mapaRes.body()?.associateBy { it.categoriaId } ?: emptyMap()
+                        Log.d("DEBUG_APP", "Mapa Progreso cargado. Elementos: ${mapaProgreso.size}")
+                    } else {
+                        Log.e("DEBUG_APP", "Fallo al cargar Mapa Progreso. Code: ${mapaRes?.code()}")
+                    }
+
+                    // 3. Último Progreso
+                    val progRes = repo.getProgresoActual()
                     if (progRes != null && progRes.isSuccessful) {
-                        progreso = progRes.body() ?: emptyList()
+                        ultimoProgreso = progRes.body()
+                        Log.d("DEBUG_APP", "Último Progreso: Cat ${ultimoProgreso?.categoriaId} Nivel ${ultimoProgreso?.nivel}")
+
+                        if (ultimoProgreso != null) {
+                            estadoProgreso = EstadoProgreso(
+                                categoriaId = ultimoProgreso!!.categoriaId,
+                                nivel = ultimoProgreso!!.nivel,
+                                indice = (ultimoProgreso!!.progresoPercent * 10).toInt(),
+                                categoriaNombre = ultimoProgreso!!.categoriaNombre
+                            )
+                        }
+                    }
+
+                    // 4. Racha
+                    val rachaRes = repo.getRacha()
+                    if (rachaRes != null && rachaRes.isSuccessful) {
+                        rachaDias = rachaRes.body()?.dias ?: 0
                     }
                 }
             } catch (e: Exception) {
-                println("Error cargando home: ${e.message}")
+                Log.e("DEBUG_APP", "Excepción crítica en cargarHome: ${e.message}")
+                e.printStackTrace()
             }
         }
     }
 
     fun buscarSenas(query: String = "", catId: Int? = null) {
         viewModelScope.launch {
-            uiState = UiState.Loading
             try {
                 val res = repo.getSenas(catId, if(query.isNotEmpty()) query else null)
-                if (res.isSuccessful) {
-                    senas = res.body() ?: emptyList()
+                if (res.isSuccessful) senas = res.body() ?: emptyList()
+            } catch (e: Exception) { }
+        }
+    }
+
+    // --- LÓGICA DE QUIZ CON LOGS ---
+
+    fun cargarQuiz(catId: Int = -1, nivel: Int = 1) {
+        viewModelScope.launch {
+            uiState = UiState.Loading
+            // LOG: Ver qué estamos pidiendo
+            Log.d("DEBUG_APP", ">>> Solicitando Quiz: CatID=$catId, Nivel=$nivel")
+
+            try {
+                val realCatId = if (catId == -1) null else catId
+                val res = repo.generarQuiz(realCatId, nivel)
+
+                if (res != null && res.isSuccessful) {
+                    quizDelDia = res.body()
+                    val preguntasCount = quizDelDia?.preguntas?.size ?: 0
+
+                    // LOG: Ver qué recibimos
+                    Log.d("DEBUG_APP", "<<< Quiz Recibido EXITOSAMENTE. Preguntas: $preguntasCount")
+                    if (preguntasCount == 0) {
+                        Log.w("DEBUG_APP", "ALERTA: El quiz llegó vacío (0 preguntas).")
+                    }
+
                     uiState = UiState.Success
+                } else {
+                    // LOG: Ver error del servidor
+                    val errorBody = res?.errorBody()?.string() ?: "Sin cuerpo de error"
+                    Log.e("DEBUG_APP", "<<< Error del Servidor: Código ${res?.code()}. Mensaje: $errorBody")
+
+                    uiState = UiState.Error("No se pudo generar el quiz. Código: ${res?.code()}")
                 }
             } catch (e: Exception) {
-                uiState = UiState.Error("Error buscando señas")
+                // LOG: Ver error de conexión/app
+                Log.e("DEBUG_APP", "!!! Excepción (Crash/Red) al cargar quiz: ${e.message}")
+                e.printStackTrace()
+                uiState = UiState.Error("Error de conexión: ${e.message}")
             }
         }
     }
 
-    fun cargarQuiz() {
+    // Guardar avance
+    fun guardarAvance(catId: Int, nivel: Int, indicePregunta: Int) {
+        if (currentUserType == "invitado" || catId == -1) return
+
         viewModelScope.launch {
-            uiState = UiState.Loading
             try {
-                val res = repo.getQuizDia()
-                if (res != null && res.isSuccessful) {
-                    quizDelDia = res.body()
-                    uiState = UiState.Success
-                } else {
-                    uiState = UiState.Error("No hay quiz disponible hoy")
+                Log.d("DEBUG_APP", "Guardando avance... Cat:$catId Nivel:$nivel Indice:$indicePregunta")
+                repo.guardarProgreso(catId, nivel, indicePregunta)
+
+                estadoProgreso = EstadoProgreso(catId, nivel, indicePregunta)
+                if (indicePregunta >= 9) {
+                    Log.d("DEBUG_APP", "Nivel completado, recargando home...")
+                    cargarHome()
                 }
             } catch (e: Exception) {
-                uiState = UiState.Error("Error cargando quiz")
+                Log.e("DEBUG_APP", "Error guardando progreso: ${e.message}")
             }
         }
     }
+
     fun obtenerSenaPorId(id: Int): Sena? {
         return senas.find { it.id == id }
     }
