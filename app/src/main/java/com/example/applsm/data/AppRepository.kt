@@ -151,4 +151,62 @@ class AppRepository(private val context: Context) {
     suspend fun getAdminUserProgressDetail(userId: Int) = getToken()?.let { token ->
         RetrofitClient.api.getAdminUserProgressDetail("Bearer $token", userId)
     }
+
+    // --- ADMIN CATEGORIAS ---
+
+    suspend fun crearCategoria(nombre: String, iconUrl: String?, descripcion: String?) = getToken()?.let { token ->
+        val data = mapOf(
+            "nombre" to nombre,
+            "icon_url" to iconUrl,
+            "descripcion" to descripcion
+        )
+        RetrofitClient.api.crearCategoria("Bearer $token", data)
+    }
+
+    suspend fun editarCategoria(id: Int, nombre: String, iconUrl: String?, descripcion: String?) = getToken()?.let { token ->
+        val data = mapOf(
+            "nombre" to nombre,
+            "icon_url" to iconUrl,
+            "descripcion" to descripcion
+        )
+        RetrofitClient.api.editarCategoria("Bearer $token", id, data)
+    }
+
+    suspend fun eliminarCategoria(id: Int) = getToken()?.let { token ->
+        RetrofitClient.api.eliminarCategoria("Bearer $token", id)
+    }
+
+    // --- ADMIN SEÑAS ---
+
+    suspend fun editarSena(id: Int, palabra: String, categoriaId: Int, descripcion: String?) = getToken()?.let { token ->
+        val data = mapOf(
+            "palabra" to palabra,
+            "categoria_id" to categoriaId,
+            "descripcion" to descripcion
+        )
+        RetrofitClient.api.editarSena("Bearer $token", id, data)
+    }
+
+    suspend fun eliminarSena(id: Int) = getToken()?.let { token ->
+        RetrofitClient.api.eliminarSena("Bearer $token", id)
+    }
+
+    // --- ADMIN QUIZZES ---
+
+    suspend fun listarQuizzes() = getToken()?.let { token ->
+        RetrofitClient.api.listarQuizzes("Bearer $token")
+    }
+
+    suspend fun crearQuiz(titulo: String, fechaDisponible: String, preguntas: List<Map<String, String>>) = getToken()?.let { token ->
+        val data = mapOf(
+            "titulo" to titulo,
+            "fecha_disponible" to fechaDisponible,
+            "preguntas" to preguntas
+        )
+        RetrofitClient.api.crearQuiz("Bearer $token", data)
+    }
+
+    suspend fun eliminarQuiz(id: Int) = getToken()?.let { token ->
+        RetrofitClient.api.eliminarQuiz("Bearer $token", id)
+    }
 }

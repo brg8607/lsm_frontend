@@ -359,4 +359,130 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
+    // --- FUNCIONES DE ADMIN CATEGORIAS ---
+    suspend fun crearCategoria(nombre: String, iconUrl: String?, descripcion: String?) {
+        try {
+            val response = repo.crearCategoria(nombre, iconUrl, descripcion)
+            if (response != null && response.isSuccessful) {
+                Log.d("DEBUG_APP", "Categoría creada exitosamente")
+            } else {
+                Log.e("DEBUG_APP", "Error al crear categoría: ${response?.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e("DEBUG_APP", "Error de red al crear categoría: ${e.message}")
+        }
+    }
+
+    suspend fun editarCategoria(id: Int, nombre: String, iconUrl: String?, descripcion: String?) {
+        try {
+            val response = repo.editarCategoria(id, nombre, iconUrl, descripcion)
+            if (response != null && response.isSuccessful) {
+                Log.d("DEBUG_APP", "Categoría editada exitosamente")
+            } else {
+                Log.e("DEBUG_APP", "Error al editar categoría: ${response?.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e("DEBUG_APP", "Error de red al editar categoría: ${e.message}")
+        }
+    }
+
+    suspend fun eliminarCategoria(id: Int) {
+        try {
+            val response = repo.eliminarCategoria(id)
+            if (response != null && response.isSuccessful) {
+                Log.d("DEBUG_APP", "Categoría eliminada exitosamente")
+            } else {
+                val errorBody = response?.errorBody()?.string()
+                Log.e("DEBUG_APP", "Error al eliminar categoría: ${response?.code()} - $errorBody")
+            }
+        } catch (e: Exception) {
+            Log.e("DEBUG_APP", "Error de red al eliminar categoría: ${e.message}")
+        }
+    }
+
+    suspend fun editarSena(id: Int, palabra: String, categoriaId: Int, descripcion: String?) {
+        try {
+            val response = repo.editarSena(id, palabra, categoriaId, descripcion)
+            if (response != null && response.isSuccessful) {
+                Log.d("DEBUG_APP", "Seña editada exitosamente")
+            } else {
+                Log.e("DEBUG_APP", "Error al editar seña: ${response?.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e("DEBUG_APP", "Error de red al editar seña: ${e.message}")
+        }
+    }
+
+    suspend fun eliminarSena(id: Int) {
+        try {
+            val response = repo.eliminarSena(id)
+            if (response != null && response.isSuccessful) {
+                Log.d("DEBUG_APP", "Seña eliminada exitosamente")
+            } else {
+                Log.e("DEBUG_APP", "Error al eliminar seña: ${response?.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e("DEBUG_APP", "Error de red al eliminar seña: ${e.message}")
+        }
+    }
+
+    // --- ADMIN QUIZZES ---
+
+    suspend fun cargarQuizzes(): List<com.example.applsm.ui.screens.admin.AdminQuiz> {
+        return try {
+            val response = repo.listarQuizzes()
+            if (response != null && response.isSuccessful) {
+                val rawList = response.body() ?: emptyList()
+                rawList.map { quiz ->
+                    com.example.applsm.ui.screens.admin.AdminQuiz(
+                        id = (quiz["id"] as? Double)?.toInt() ?: 0,
+                        titulo = quiz["titulo"] as? String ?: "",
+                        fecha_programada = quiz["fecha_programada"] as? String,
+                        creado_en = quiz["creado_en"] as? String,
+                        total_preguntas = (quiz["total_preguntas"] as? Double)?.toInt() ?: 0
+                    )
+                }
+            } else {
+                Log.e("DEBUG_APP", "Error al cargar quizzes: ${response?.code()}")
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.e("DEBUG_APP", "Error de red al cargar quizzes: ${e.message}")
+            emptyList()
+        }
+    }
+
+    suspend fun crearQuiz(titulo: String, fecha: String): Boolean {
+        return try {
+            // Crear un quiz vacío (sin preguntas por ahora)
+            val response = repo.crearQuiz(titulo, fecha, emptyList())
+            if (response != null && response.isSuccessful) {
+                Log.d("DEBUG_APP", "Quiz creado exitosamente")
+                true
+            } else {
+                Log.e("DEBUG_APP", "Error al crear quiz: ${response?.code()}")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("DEBUG_APP", "Error de red al crear quiz: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun eliminarQuiz(id: Int): Boolean {
+        return try {
+            val response = repo.eliminarQuiz(id)
+            if (response != null && response.isSuccessful) {
+                Log.d("DEBUG_APP", "Quiz eliminado exitosamente")
+                true
+            } else {
+                Log.e("DEBUG_APP", "Error al eliminar quiz: ${response?.code()}")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("DEBUG_APP", "Error de red al eliminar quiz: ${e.message}")
+            false
+        }
+    }
 }

@@ -284,6 +284,58 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("userId") userId: Int
     ): Response<AdminUserDetail>
+
+    // --- ADMIN CATEGORIAS ---
+    @POST("api/admin/categorias")
+    suspend fun crearCategoria(
+        @Header("Authorization") token: String,
+        @Body data: Map<String, String?>
+    ): Response<Map<String, Any>>
+
+    @PUT("api/admin/categorias/{id}")
+    suspend fun editarCategoria(
+        @Header("Authorization") token: String,
+        @Path("id") id: Int,
+        @Body data: Map<String, String?>
+    ): Response<Map<String, String>>
+
+    @DELETE("api/admin/categorias/{id}")
+    suspend fun eliminarCategoria(
+        @Header("Authorization") token: String,
+        @Path("id") id: Int
+    ): Response<Map<String, String>>
+
+    // --- ADMIN SEÑAS ---
+    @PUT("api/admin/senas/{id}")
+    suspend fun editarSena(
+        @Header("Authorization") token: String,
+        @Path("id") id: Int,
+        @Body data: Map<String, Any?>
+    ): Response<Map<String, String>>
+
+    @DELETE("api/admin/senas/{id}")
+    suspend fun eliminarSena(
+        @Header("Authorization") token: String,
+        @Path("id") id: Int
+    ): Response<Map<String, String>>
+
+    // --- ADMIN QUIZZES ---
+    @GET("api/admin/quiz")
+    suspend fun listarQuizzes(
+        @Header("Authorization") token: String
+    ): Response<List<Map<String, Any>>>
+
+    @POST("api/admin/quiz")
+    suspend fun crearQuiz(
+        @Header("Authorization") token: String,
+        @Body data: Map<String, Any?>
+    ): Response<Map<String, Any>>
+
+    @DELETE("api/admin/quiz/{id}")
+    suspend fun eliminarQuiz(
+        @Header("Authorization") token: String,
+        @Path("id") id: Int
+    ): Response<Map<String, String>>
 }
 
 object RetrofitClient {

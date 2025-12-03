@@ -65,15 +65,6 @@ fun AdminContainerScreen(rootNavController: NavController, viewModel: AppViewMod
                     }
                 )
             }
-        },
-        floatingActionButton = {
-            if (selectedTab == 0 || selectedTab == 2) { // Mostrar solo en Contenido y Quizzes
-                FloatingActionButton(onClick = {
-                    // TODO: Implementar navegación para crear nuevo item
-                }) {
-                    Icon(Icons.Default.Add, contentDescription = "Añadir")
-                }
-            }
         }
     ) { padding ->
         Box(modifier = Modifier.padding(padding)) {

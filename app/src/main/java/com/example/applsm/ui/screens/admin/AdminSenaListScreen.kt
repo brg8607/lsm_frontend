@@ -9,8 +9,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,10 +19,15 @@ import androidx.navigation.NavController
 import com.example.applsm.data.Sena
 import com.example.applsm.ui.AppViewModel
 import com.example.applsm.ui.theme.GrayBg
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminSenaListScreen(nav: NavController, vm: AppViewModel, categoryId: Int, categoryName: String) {
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var selectedSena by remember { mutableStateOf<Sena?>(null) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(categoryId) {
         vm.buscarSenas(catId = categoryId)
@@ -55,11 +59,69 @@ fun AdminSenaListScreen(nav: NavController, vm: AppViewModel, categoryId: Int, c
             } else {
                 LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(vm.senas) { sena ->
-                        SenaListItem(sena = sena, onEdit = {}, onDelete = {})
+                        SenaListItem(
+                            sena = sena,
+                            onEdit = {
+                                selectedSena = sena
+                                showEditDialog = true
+                            },
+                            onDelete = {
+                                selectedSena = sena
+                                showDeleteDialog = true
+                            }
+                        )
                     }
                 }
             }
         }
+    }
+
+    // Diálogo para editar seña
+    if (showEditDialog && selectedSena != null) {
+        SenaDialog(
+            title = "Editar Seña",
+            sena = selectedSena,
+            onDismiss = { showEditDialog = false },
+            onConfirm = { palabra, descripcion ->
+                scope.launch {
+                    vm.editarSena(
+                        selectedSena!!.id,
+                        palabra,
+                        categoryId,
+                        descripcion
+                    )
+                    showEditDialog = false
+                    vm.buscarSenas(catId = categoryId)
+                }
+            }
+        )
+    }
+
+    // Diálogo de confirmación para eliminar
+    if (showDeleteDialog && selectedSena != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eliminar Seña") },
+            text = { Text("¿Estás seguro de eliminar la seña '${selectedSena?.palabra}'?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            vm.eliminarSena(selectedSena!!.id)
+                            showDeleteDialog = false
+                            vm.buscarSenas(catId = categoryId)
+                        }
+                    }
+                ) {
+                    Text("Eliminar", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
@@ -77,8 +139,63 @@ fun SenaListItem(sena: Sena, onEdit: () -> Unit, onDelete: () -> Unit) {
                 Icon(Icons.Default.Edit, contentDescription = "Editar Seña", tint = Color.Gray)
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Eliminar Seña", tint = Color.Gray)
+                Icon(Icons.Default.Delete, contentDescription = "Eliminar Seña", tint = Color.Red)
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SenaDialog(
+    title: String,
+    sena: Sena?,
+    onDismiss: () -> Unit,
+    onConfirm: (palabra: String, descripcion: String?) -> Unit
+) {
+    var palabra by remember { mutableStateOf(sena?.palabra ?: "") }
+    var descripcion by remember { mutableStateOf(sena?.descripcion ?: "") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = palabra,
+                    onValueChange = { palabra = it },
+                    label = { Text("Palabra *") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = descripcion,
+                    onValueChange = { descripcion = it },
+                    label = { Text("Descripción") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (palabra.isNotBlank()) {
+                        onConfirm(
+                            palabra,
+                            descripcion.takeIf { it.isNotBlank() }
+                        )
+                    }
+                },
+                enabled = palabra.isNotBlank()
+            ) {
+                Text("Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
