@@ -148,20 +148,40 @@ fun SummaryCard(userDetail: com.example.applsm.data.AdminUserDetail) {
             Text("Resumen", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Spacer(modifier = Modifier.height(12.dp))
             
+            // Información del usuario
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    Text(userDetail.usuario.nombre, fontWeight = FontWeight.Bold)
+                    Text(userDetail.usuario.correo ?: "Sin correo", fontSize = 12.sp, color = Color.Gray)
+                    Text("Tipo: ${userDetail.usuario.tipoUsuario}", fontSize = 12.sp, color = Color.Gray)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Registro:", fontSize = 12.sp, color = Color.Gray)
+                    Text(userDetail.usuario.fechaRegistro?.split("T")?.get(0) ?: "N/A", fontSize = 12.sp)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(16.dp))
+            
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 SummaryItem(
-                    label = "Categorías Completadas",
+                    label = "Categorías\nCompletadas",
                     value = "${userDetail.resumen.categoriasCompletadas}/${userDetail.resumen.totalCategorias}"
                 )
                 SummaryItem(
-                    label = "Quizzes Realizados",
+                    label = "Quizzes\nRealizados",
                     value = userDetail.resumen.quizzesRealizados.toString()
                 )
                 SummaryItem(
-                    label = "Promedio",
+                    label = "Promedio\nPuntaje",
                     value = "${userDetail.resumen.promedioPuntaje}%"
                 )
             }
@@ -172,8 +192,14 @@ fun SummaryCard(userDetail: com.example.applsm.data.AdminUserDetail) {
 @Composable
 fun SummaryItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-        Text(label, fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
+        Text(value, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
+        Text(
+            label, 
+            fontSize = 11.sp, 
+            color = Color.Gray, 
+            modifier = Modifier.padding(top = 4.dp),
+            lineHeight = 14.sp
+        )
     }
 }
 
