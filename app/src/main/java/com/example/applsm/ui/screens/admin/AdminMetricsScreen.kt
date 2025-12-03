@@ -1,4 +1,4 @@
-package com.example.applsm.ui.screens
+package com.example.applsm.ui.screens.admin
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.applsm.ui.theme.AppViewModel
+import com.example.applsm.ui.AppViewModel
 
 @Composable
 fun AdminMetricsScreen(vm: AppViewModel) {
