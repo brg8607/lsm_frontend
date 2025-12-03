@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import retrofit2.Response
 
 private val Context.dataStore by preferencesDataStore("user_prefs")
 
@@ -105,5 +106,39 @@ class AppRepository(private val context: Context) {
 
     suspend fun getAdminUserProgressDetail(userId: Int) = getToken()?.let { token ->
         RetrofitClient.api.getAdminUserProgressDetail("Bearer $token", userId)
+    suspend fun getPuntos(): Response<PuntosResponse>? {
+        val token = getToken() ?: return null
+        return try {
+            RetrofitClient.api.getPuntosActuales("Bearer $token")
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun sumarPuntos(puntos: Int): Response<PuntosResponse>? {
+        val token = getToken() ?: return null
+        return try {
+            RetrofitClient.api.sumarPuntos("Bearer $token", SumarPuntosRequest(puntos))
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun getEstadoQuizDiario(): Response<EstadoQuizDiarioResponse>? {
+        val token = getToken() ?: return null
+        return try {
+            RetrofitClient.api.getEstadoQuizDiario("Bearer $token")
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun completarQuizDiario(puntuacion: Int): Response<CompletarQuizDiarioResponse>? {
+        val token = getToken() ?: return null
+        return try {
+            RetrofitClient.api.completarQuizDiario("Bearer $token", CompletarQuizDiarioRequest(puntuacion))
+        } catch (e: Exception) {
+            null
+        }
     }
 }
