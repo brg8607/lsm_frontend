@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavController
 import com.example.applsm.ui.AppViewModel
+import com.example.applsm.ui.screens.AdminMetricsScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,7 +25,7 @@ fun AdminContainerScreen(rootNavController: NavController, viewModel: AppViewMod
                     when(selectedTab) {
                         0 -> "Gestión de Contenido"
                         1 -> "Gestión de Usuarios"
-                        2 -> "Gestión de Quizzes"
+                        2 -> "Métricas"
                         else -> "Panel de Administrador"
                     }, 
                     fontWeight = FontWeight.Bold)
@@ -47,19 +48,19 @@ fun AdminContainerScreen(rootNavController: NavController, viewModel: AppViewMod
                     onClick = { selectedTab = 1 }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Quiz, contentDescription = "Quizzes") },
-                    label = { Text("Quizzes") },
+                    icon = { Icon(Icons.Default.ShowChart, contentDescription = "Métricas") },
+                    label = { Text("Métricas") },
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 }
                 )
-                 NavigationBarItem(
+                NavigationBarItem(
                     icon = { Icon(Icons.Default.Logout, contentDescription = "Salir") },
                     label = { Text("Salir") },
                     selected = false,
                     onClick = {
                         viewModel.logout {
                             rootNavController.navigate("login") {
-                                popUpTo(0) // Limpia toda la pila de navegación
+                                popUpTo(0)
                             }
                         }
                     }
@@ -71,7 +72,7 @@ fun AdminContainerScreen(rootNavController: NavController, viewModel: AppViewMod
             when (selectedTab) {
                 0 -> AdminContentScreen(rootNavController, viewModel)
                 1 -> AdminUsersScreen(rootNavController, viewModel)
-                2 -> AdminQuizzesScreen(rootNavController, viewModel)
+                2 -> AdminMetricsScreen(vm = viewModel)
             }
         }
     }

@@ -185,6 +185,20 @@ data class AdminUserSummary(
     @SerializedName("promedio_puntaje") val promedioPuntaje: String
 )
 
+data class AdminMetrics(
+    @SerializedName("total_usuarios") val totalUsuarios: Int,
+    @SerializedName("usuarios_completados") val usuariosCompletados: Int,
+    @SerializedName("usuarios_activos") val usuariosActivos: Int,
+    @SerializedName("usuario_top_racha") val usuarioTopRacha: TopRachaUser?,
+    @SerializedName("total_categorias") val totalCategorias: Int,
+    @SerializedName("total_senas") val totalSenas: Int
+)
+
+data class TopRachaUser(
+    val nombre: String?,
+    @SerializedName("racha_dias") val rachaDias: Int?
+)
+
 // --- INTERFAZ DE SERVICIO API ---
 
 interface ApiService {
@@ -284,6 +298,9 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("userId") userId: Int
     ): Response<AdminUserDetail>
+
+    @GET("api/admin/stats")
+    suspend fun getAdminMetrics(@Header("Authorization") token: String): Response<AdminMetrics>
 
     // --- ADMIN CATEGORIAS ---
     @POST("api/admin/categorias")

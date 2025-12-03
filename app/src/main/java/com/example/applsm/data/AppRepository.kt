@@ -152,6 +152,10 @@ class AppRepository(private val context: Context) {
         RetrofitClient.api.getAdminUserProgressDetail("Bearer $token", userId)
     }
 
+    suspend fun getAdminMetrics() = getToken()?.let { token ->
+        RetrofitClient.api.getAdminMetrics("Bearer $token")
+    }
+
     // --- ADMIN CATEGORIAS ---
 
     suspend fun crearCategoria(nombre: String, iconUrl: String?, descripcion: String?) = getToken()?.let { token ->

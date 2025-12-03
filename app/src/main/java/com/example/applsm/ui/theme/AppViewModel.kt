@@ -39,6 +39,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     // --- ADMIN STATE ---
     var adminUserStats by mutableStateOf<List<AdminUserStat>>(emptyList())
     var adminUserDetail by mutableStateOf<AdminUserDetail?>(null)
+    var adminMetrics by mutableStateOf<AdminMetrics?>(null)
 
     init {
         checkSession()
@@ -356,6 +357,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 uiState = UiState.Error("Error de red: ${e.message}")
+            }
+        }
+    }
+
+    fun loadAdminMetrics() {
+        viewModelScope.launch {
+            try {
+                val response = repo.getAdminMetrics()
+                if (response != null && response.isSuccessful) {
+                    adminMetrics = response.body()
+                    Log.d("DEBUG_APP", "Métricas cargadas: ${adminMetrics}")
+                } else {
+                    Log.e("DEBUG_APP", "Error al cargar métricas: ${response?.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("DEBUG_APP", "Error de red al cargar métricas: ${e.message}")
             }
         }
     }
