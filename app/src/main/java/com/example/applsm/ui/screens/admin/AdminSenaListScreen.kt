@@ -94,13 +94,15 @@ fun AdminSenaListScreen(nav: NavController, vm: AppViewModel, categoryId: Int, c
             onDismiss = { showCreateDialog = false },
             onConfirm = { palabra, descripcion ->
                 scope.launch {
-                    vm.crearSena(
+                    val success = vm.crearSena(
                         palabra = palabra,
                         categoriaId = categoryId,
                         descripcion = descripcion
                     )
+                    if (success) {
+                        vm.buscarSenas(catId = categoryId)
+                    }
                     showCreateDialog = false
-                    vm.buscarSenas(catId = categoryId)
                 }
             }
         )
@@ -114,14 +116,16 @@ fun AdminSenaListScreen(nav: NavController, vm: AppViewModel, categoryId: Int, c
             onDismiss = { showEditDialog = false },
             onConfirm = { palabra, descripcion ->
                 scope.launch {
-                    vm.editarSena(
+                    val success = vm.editarSena(
                         selectedSena!!.id,
                         palabra,
                         categoryId,
                         descripcion
                     )
+                    if (success) {
+                        vm.buscarSenas(catId = categoryId)
+                    }
                     showEditDialog = false
-                    vm.buscarSenas(catId = categoryId)
                 }
             }
         )
@@ -137,9 +141,11 @@ fun AdminSenaListScreen(nav: NavController, vm: AppViewModel, categoryId: Int, c
                 TextButton(
                     onClick = {
                         scope.launch {
-                            vm.eliminarSena(selectedSena!!.id)
+                            val success = vm.eliminarSena(selectedSena!!.id)
+                            if (success) {
+                                vm.buscarSenas(catId = categoryId)
+                            }
                             showDeleteDialog = false
-                            vm.buscarSenas(catId = categoryId)
                         }
                     }
                 ) {

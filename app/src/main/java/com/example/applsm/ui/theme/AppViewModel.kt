@@ -420,42 +420,51 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- FUNCIONES DE ADMIN SEÑAS ---
 
-    suspend fun crearSena(palabra: String, categoriaId: Int, descripcion: String?) {
-        try {
+    suspend fun crearSena(palabra: String, categoriaId: Int, descripcion: String?): Boolean {
+        return try {
             val response = repo.crearSena(palabra, categoriaId, descripcion)
             if (response != null && response.isSuccessful) {
-                Log.d("DEBUG_APP", "Seña creada exitosamente")
+                Log.d("DEBUG_APP", "Seña creada exitosamente: ${response.body()}")
+                true
             } else {
-                Log.e("DEBUG_APP", "Error al crear seña: ${response?.code()}")
+                Log.e("DEBUG_APP", "Error al crear seña: ${response?.code()} - ${response?.errorBody()?.string()}")
+                false
             }
         } catch (e: Exception) {
-            Log.e("DEBUG_APP", "Error de red al crear seña: ${e.message}")
+            Log.e("DEBUG_APP", "Error de red al crear seña: ${e.message}", e)
+            false
         }
     }
 
-    suspend fun editarSena(id: Int, palabra: String, categoriaId: Int, descripcion: String?) {
-        try {
+    suspend fun editarSena(id: Int, palabra: String, categoriaId: Int, descripcion: String?): Boolean {
+        return try {
             val response = repo.editarSena(id, palabra, categoriaId, descripcion)
             if (response != null && response.isSuccessful) {
                 Log.d("DEBUG_APP", "Seña editada exitosamente")
+                true
             } else {
-                Log.e("DEBUG_APP", "Error al editar seña: ${response?.code()}")
+                Log.e("DEBUG_APP", "Error al editar seña: ${response?.code()} - ${response?.errorBody()?.string()}")
+                false
             }
         } catch (e: Exception) {
-            Log.e("DEBUG_APP", "Error de red al editar seña: ${e.message}")
+            Log.e("DEBUG_APP", "Error de red al editar seña: ${e.message}", e)
+            false
         }
     }
 
-    suspend fun eliminarSena(id: Int) {
-        try {
+    suspend fun eliminarSena(id: Int): Boolean {
+        return try {
             val response = repo.eliminarSena(id)
             if (response != null && response.isSuccessful) {
                 Log.d("DEBUG_APP", "Seña eliminada exitosamente")
+                true
             } else {
-                Log.e("DEBUG_APP", "Error al eliminar seña: ${response?.code()}")
+                Log.e("DEBUG_APP", "Error al eliminar seña: ${response?.code()} - ${response?.errorBody()?.string()}")
+                false
             }
         } catch (e: Exception) {
-            Log.e("DEBUG_APP", "Error de red al eliminar seña: ${e.message}")
+            Log.e("DEBUG_APP", "Error de red al eliminar seña: ${e.message}", e)
+            false
         }
     }
 
