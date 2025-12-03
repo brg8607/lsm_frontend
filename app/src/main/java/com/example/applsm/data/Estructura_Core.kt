@@ -37,28 +37,26 @@ data class Sena(
 )
 
 data class Quiz(
-    val id: Long?, // Puede ser nulo si es generado al vuelo
+    val id: Long?,
     val titulo: String,
     val preguntas: List<Pregunta>
 )
 
-// CORRECCIÓN AQUÍ: Agregamos el campo imagenUrl para recibir "imagen_asociada_url" del backend
 data class Pregunta(
     val id: Int,
     @SerializedName("pregunta_texto") val texto: String,
     @SerializedName("video_asociado_url") val videoUrl: String?,
-    @SerializedName("imagen_asociada_url") val imagenUrl: String?, // <--- ¡ESTE FALTABA!
+    @SerializedName("imagen_asociada_url") val imagenUrl: String?,
     @SerializedName("opciones") val opciones: List<String>,
-    @SerializedName("respuesta_correcta") val respuestaCorrecta: String? = null
+    // CORRECCIÓN: Mapeamos 'respuesta_correcta' del backend a 'respuestaCorrecta'
+    @SerializedName("respuesta_correcta") val respuestaCorrecta: String?
 )
 
-// Datos de Racha
 data class RachaResponse(
     @SerializedName("dias_racha") val dias: Int,
     @SerializedName("mensaje") val mensaje: String
 )
 
-// Datos de Progreso Detallado
 data class EstadoProgreso(
     @SerializedName("categoria_id") val categoriaId: Int,
     @SerializedName("nivel_actual") val nivel: Int,
@@ -66,7 +64,17 @@ data class EstadoProgreso(
     @SerializedName("categoria_nombre") val categoriaNombre: String? = null
 )
 
-// Modelo para el Mapa de Progreso
+data class ProgresoRequest(
+    @SerializedName("categoria_id") val categoriaId: Int,
+    @SerializedName("nivel") val nivel: Int,
+    @SerializedName("indice") val indice: Int
+)
+
+data class ResultadoQuizRequest(
+    @SerializedName("quiz_id") val quizId: Int,
+    @SerializedName("puntaje") val puntaje: Int
+)
+
 data class ProgresoCategoria(
     @SerializedName("categoria_id") val categoriaId: Int,
     @SerializedName("nivel_actual") val nivelActual: Int,
@@ -78,19 +86,16 @@ data class ProgresoCategoria(
 
 data class UltimoProgreso(
     @SerializedName("categoria_id") val categoriaId: Int,
-    @SerializedName("categoria_nombre") val categoriaNombre: String,
-    @SerializedName("nivel") val nivel: Int,
+    @SerializedName("categoria_nombre") val categoriaNombre: String?,
+    val nivel: Int,
     @SerializedName("progreso_percent") val progresoPercent: Float
 )
 
-// Modelo antiguo de Progreso (Legacy)
 data class Progreso(
     @SerializedName("categoria_id") val categoriaId: Int,
     val nombre: String,
     val porcentaje: Int
 )
-
-// --- API SERVICE ---
 
 interface ApiService {
     @POST("api/auth/login")
@@ -114,8 +119,6 @@ interface ApiService {
         @Query("busqueda") query: String? = null
     ): Response<List<Sena>>
 
-    // --- NUEVOS ENDPOINTS DINÁMICOS ---
-
     @GET("api/quiz/generarDinamico")
     suspend fun generarQuizDinamico(
         @Header("Authorization") token: String,
@@ -129,7 +132,7 @@ interface ApiService {
     @POST("api/progreso/guardar")
     suspend fun guardarProgreso(
         @Header("Authorization") token: String,
-        @Body datos: ProgresoRequest // Asegúrate de tener esta clase definida o usar Map si prefieres
+        @Body datos: ProgresoRequest
     ): Response<Map<String, String>>
 
     @GET("api/progreso/actual")
@@ -138,20 +141,18 @@ interface ApiService {
     @GET("api/usuario/racha")
     suspend fun getRacha(@Header("Authorization") token: String): Response<RachaResponse>
 
-    // --- ENDPOINTS LEGACY ---
     @GET("api/quiz/hoy")
     suspend fun getQuizDelDia(@Header("Authorization") token: String): Response<Quiz>
 
     @POST("api/quiz/resultado")
     suspend fun enviarResultado(
         @Header("Authorization") token: String,
-        @Body resultado: ResultadoQuizRequest // Asegúrate de tener esta clase definida
+        @Body resultado: ResultadoQuizRequest
     ): Response<Map<String, Any>>
 
     @GET("api/progreso")
     suspend fun getProgreso(@Header("Authorization") token: String): Response<List<Progreso>>
 
-    // --- ADMIN ---
     @Multipart
     @POST("api/admin/senas")
     suspend fun subirSena(
@@ -161,19 +162,6 @@ interface ApiService {
         @Part video: MultipartBody.Part
     ): Response<Map<String, Any>>
 }
-
-// CLASES DE REQUEST NECESARIAS QUE NO ESTABAN EN EL SNIPPET ANTERIOR PERO SE USAN
-data class ProgresoRequest(
-    @SerializedName("categoria_id") val categoriaId: Int,
-    @SerializedName("nivel") val nivel: Int,
-    @SerializedName("indice") val indice: Int
-)
-
-data class ResultadoQuizRequest(
-    @SerializedName("quiz_id") val quizId: Int,
-    @SerializedName("puntaje") val puntaje: Int
-)
-
 
 object RetrofitClient {
     private const val BASE_URL = "http://10.0.2.2:3000/"

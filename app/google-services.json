@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "796116611594",
+    "project_id": "applsm-880d9",
+    "storage_bucket": "applsm-880d9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:796116611594:android:d728c11ff052120b50e5f3",
+        "android_client_info": {
+          "package_name": "com.example.applsm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxQYj7b4PvYRcTJIS_AAyJgJtSbuYUET8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
