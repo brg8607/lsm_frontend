@@ -134,31 +134,38 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     fun cargarHome() {
-        if (currentUserType == "invitado") return
+        if (currentUserType == "invitado") {
+            Log.d("DEBUG_APP", "cargarHome: Usuario invitado, se omite carga de datos")
+            return
+        }
 
         viewModelScope.launch {
             Log.d("DEBUG_APP", "cargarHome: Iniciando actualización de datos...")
+            Log.d("DEBUG_APP", "cargarHome: UserType=$currentUserType, Token=${currentUserToken?.take(20)}...")
+            
             try {
                 // 1. Categorías
                 val catRes = repo.getCategorias()
                 if (catRes != null && catRes.isSuccessful) {
                     categorias = catRes.body() ?: emptyList()
                     Log.d("DEBUG_APP", "Categorías cargadas: ${categorias.size}")
+                } else {
+                    Log.e("DEBUG_APP", "Error al cargar categorías: ${catRes?.code()} - ${catRes?.errorBody()?.string()}")
                 }
 
                 // 2. Mapa de Progreso
                 val mapaRes = repo.getProgresoMapa()
                 if (mapaRes != null && mapaRes.isSuccessful) {
                     val listaProgreso = mapaRes.body() ?: emptyList()
-                    Log.d("DEBUG_APP", "Respuesta Mapa Raw: $listaProgreso")
+                    Log.d("DEBUG_APP", "Respuesta Mapa Raw (${listaProgreso.size} categorías):")
                     listaProgreso.forEach { 
-                        Log.d("DEBUG_APP", " -> Item: CatID=${it.categoriaId}, Completado=${it.completado}") 
+                        Log.d("DEBUG_APP", " -> Cat ${it.categoriaId}: Nivel=${it.nivelActual}, Preguntas=${it.preguntasCompletadas}/${it.totalPreguntas}, Completado=${it.completado}, Bloqueado=${it.bloqueado}") 
                     }
                     
                     mapaProgreso = listaProgreso.associateBy { it.categoriaId }
-                    Log.d("DEBUG_APP", "Mapa Progreso Mapped Keys: ${mapaProgreso.keys}")
+                    Log.d("DEBUG_APP", "Mapa Progreso construido con ${mapaProgreso.size} categorías")
                 } else {
-                    Log.e("DEBUG_APP", "Fallo al cargar Mapa Progreso. Code: ${mapaRes?.code()} Body: ${mapaRes?.errorBody()?.string()}")
+                    Log.e("DEBUG_APP", "Fallo al cargar Mapa Progreso. Code: ${mapaRes?.code()} - ${mapaRes?.errorBody()?.string()}")
                 }
 
                 // 3. Último Progreso
@@ -166,15 +173,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if (ultimoRes != null && ultimoRes.isSuccessful) {
                     ultimoProgreso = ultimoRes.body()
                     Log.d("DEBUG_APP", "Último Progreso: Cat ${ultimoProgreso?.categoriaId} Nivel ${ultimoProgreso?.nivel}")
+                } else {
+                    Log.e("DEBUG_APP", "Error al cargar último progreso: ${ultimoRes?.code()}")
                 }
 
                 // 4. Racha - Primero registrar la sesión, luego obtener la racha
-                repo.registrarSesion() // Registra que el usuario abrió la app hoy
+                try {
+                    val sesionRes = repo.registrarSesion()
+                    Log.d("DEBUG_APP", "Sesión registrada: ${sesionRes?.code()}")
+                } catch (e: Exception) {
+                    Log.e("DEBUG_APP", "Error al registrar sesión: ${e.message}")
+                }
                 
                 val rachaRes = repo.getRachaActual()
                 if (rachaRes != null && rachaRes.isSuccessful) {
                     rachaDias = rachaRes.body()?.rachaActual ?: 0
                     Log.d("DEBUG_APP", "Racha cargada: $rachaDias días")
+                } else {
+                    Log.e("DEBUG_APP", "Error al cargar racha: ${rachaRes?.code()}")
                 }
                 
                 // 5. Puntos
@@ -184,17 +200,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 cargarEstadoQuizDiario()
 
             } catch (e: Exception) {
-                Log.e("DEBUG_APP", "Excepción crítica en cargarHome: ${e.message}")
-                e.printStackTrace()
+                Log.e("DEBUG_APP", "Excepción crítica en cargarHome: ${e.message}", e)
             }
         }
     }
     
     fun cargarPuntos() {
         viewModelScope.launch {
-            val res = repo.getPuntos()
-            if (res != null && res.isSuccessful) {
-                puntos = res.body()?.puntos ?: 0
+            try {
+                val res = repo.getPuntos()
+                if (res != null && res.isSuccessful) {
+                    puntos = res.body()?.puntos ?: 0
+                    Log.d("DEBUG_APP", "Puntos cargados: $puntos")
+                } else {
+                    Log.e("DEBUG_APP", "Error al cargar puntos: ${res?.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("DEBUG_APP", "Error en cargarPuntos: ${e.message}", e)
             }
         }
     }
@@ -202,20 +224,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun sumarPuntos(cantidad: Int) {
         if (currentUserType == "invitado") return
         viewModelScope.launch {
-            val res = repo.sumarPuntos(cantidad)
-            if (res != null && res.isSuccessful) {
-                puntos = res.body()?.totalPuntos ?: (puntos + cantidad)
-                Log.d("DEBUG_APP", "Puntos sumados: $cantidad. Total: $puntos")
+            try {
+                val res = repo.sumarPuntos(cantidad)
+                if (res != null && res.isSuccessful) {
+                    puntos = res.body()?.totalPuntos ?: (puntos + cantidad)
+                    Log.d("DEBUG_APP", "Puntos sumados: $cantidad. Total: $puntos")
+                } else {
+                    Log.e("DEBUG_APP", "Error al sumar puntos: ${res?.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("DEBUG_APP", "Error en sumarPuntos: ${e.message}", e)
             }
         }
     }
 
     fun cargarEstadoQuizDiario() {
         viewModelScope.launch {
-            val res = repo.getEstadoQuizDiario()
-            if (res != null && res.isSuccessful) {
-                estadoQuizDiario = res.body()
-                Log.d("DEBUG_APP", "Estado Quiz Diario: ${estadoQuizDiario?.completado}")
+            try {
+                val res = repo.getEstadoQuizDiario()
+                if (res != null && res.isSuccessful) {
+                    estadoQuizDiario = res.body()
+                    Log.d("DEBUG_APP", "Estado Quiz Diario: ${estadoQuizDiario?.completado}")
+                } else {
+                    Log.e("DEBUG_APP", "Error al cargar estado quiz diario: ${res?.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("DEBUG_APP", "Error en cargarEstadoQuizDiario: ${e.message}", e)
             }
         }
     }
@@ -281,12 +315,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // Guardar avance
     fun guardarAvance(catId: Int, nivel: Int, indicePregunta: Int) {
-        if (currentUserType == "invitado" || catId == -1) return
+        if (currentUserType == "invitado" || catId == -1) {
+            Log.d("DEBUG_APP", "No se guarda progreso - Usuario: $currentUserType, CatId: $catId")
+            return
+        }
 
         viewModelScope.launch {
             try {
-                Log.d("DEBUG_APP", "Guardando avance... Cat:$catId Nivel:$nivel Indice:$indicePregunta")
-                repo.guardarProgreso(catId, nivel, indicePregunta)
+                Log.d("DEBUG_APP", "ViewModel - Guardando avance... Cat:$catId Nivel:$nivel Indice:$indicePregunta")
+                val response = repo.guardarProgreso(catId, nivel, indicePregunta)
+                if (response?.isSuccessful == true) {
+                    Log.d("DEBUG_APP", "ViewModel - Progreso guardado exitosamente")
+                } else {
+                    Log.e("DEBUG_APP", "ViewModel - Error al guardar progreso: ${response?.code()}")
+                }
 
                 estadoProgreso = EstadoProgreso(catId, nivel, indicePregunta)
                 

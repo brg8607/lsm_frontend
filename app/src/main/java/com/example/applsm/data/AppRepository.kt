@@ -33,7 +33,11 @@ class AppRepository(private val context: Context) {
         context.dataStore.edit { it.clear() }
     }
 
-    suspend fun getToken(): String? = userToken.first()
+    suspend fun getToken(): String? {
+        val token = userToken.first()
+        android.util.Log.d("DEBUG_APP", "Repository.getToken() = ${token?.take(30)}...")
+        return token
+    }
 
     // --- LLAMADAS A LA API ---
 
@@ -74,19 +78,34 @@ class AppRepository(private val context: Context) {
 
     suspend fun getRachaActual() = getToken()?.let { token ->
         RetrofitClient.api.getRachaActual("Bearer $token")
+    } ?: run {
+        android.util.Log.e("DEBUG_APP", "Repository.getRachaActual() - TOKEN ES NULL")
+        null
     }
 
     suspend fun guardarProgreso(catId: Int, nivel: Int, indice: Int) = getToken()?.let { token ->
         val request = ProgresoRequest(catId, nivel, indice)
-        RetrofitClient.api.guardarProgreso("Bearer $token", request)
+        android.util.Log.d("DEBUG_APP", "Repository - Guardando progreso: catId=$catId, nivel=$nivel, indice=$indice")
+        val response = RetrofitClient.api.guardarProgreso("Bearer $token", request)
+        android.util.Log.d("DEBUG_APP", "Repository - Respuesta guardarProgreso: ${response.code()} - ${response.body()}")
+        if (!response.isSuccessful) {
+            android.util.Log.e("DEBUG_APP", "Repository - Error guardarProgreso: ${response.errorBody()?.string()}")
+        }
+        response
     }
 
     suspend fun getProgresoActual() = getToken()?.let { token ->
         RetrofitClient.api.getProgresoActual("Bearer $token")
+    } ?: run {
+        android.util.Log.e("DEBUG_APP", "Repository.getProgresoActual() - TOKEN ES NULL")
+        null
     }
 
     suspend fun getProgresoMapa() = getToken()?.let { token ->
         RetrofitClient.api.getProgresoMapa("Bearer $token")
+    } ?: run {
+        android.util.Log.e("DEBUG_APP", "Repository.getProgresoMapa() - TOKEN ES NULL")
+        null
     }
 
     suspend fun getQuizDia() = getToken()?.let {
