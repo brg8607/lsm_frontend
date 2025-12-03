@@ -170,12 +170,15 @@ data class AdminUserCategoryProgress(
     @SerializedName("categoria_id") val categoriaId: Int,
     @SerializedName("categoria_nombre") val categoriaNombre: String,
     @SerializedName("icon_url") val iconUrl: String?,
-    @SerializedName("porcentaje_completado") val porcentajeCompletado: Int,
+    @SerializedName("porcentaje_completado") val porcentajeCompletado: Double,
     @SerializedName("ultimo_acceso") val ultimoAcceso: String?,
     val nivel: Int?,
     @SerializedName("indice_pregunta") val indicePregunta: Int?,
-    val completado: Boolean?
-)
+    val completado: Int? // MySQL devuelve 0 o 1, no boolean
+) {
+    val estaCompletado: Boolean
+        get() = completado == 1
+}
 
 data class AdminUserQuizHistory(
     val id: Int,

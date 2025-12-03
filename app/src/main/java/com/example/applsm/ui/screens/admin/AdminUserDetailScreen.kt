@@ -112,11 +112,27 @@ fun AdminUserDetailScreen(nav: NavController, vm: AppViewModel, userId: Int) {
 fun CategoryProgressItem(progress: AdminUserCategoryProgress) {
     Card(colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(progress.categoriaNombre, fontWeight = FontWeight.Bold)
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(progress.categoriaNombre, fontWeight = FontWeight.Bold)
+                if (progress.estaCompletado) {
+                    Text("✓ Completado", color = Color(0xFF4CAF50), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
-            LinearProgressIndicator(progress = { (progress.porcentajeCompletado / 100f) }, modifier = Modifier.fillMaxWidth())
+            LinearProgressIndicator(
+                progress = { (progress.porcentajeCompletado / 100f).toFloat() }, 
+                modifier = Modifier.fillMaxWidth()
+            )
             Spacer(modifier = Modifier.height(4.dp))
-            Text("${progress.porcentajeCompletado}% completado", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            Text(
+                "${progress.porcentajeCompletado.toInt()}% completado • Nivel ${progress.nivel ?: 1} • Pregunta ${progress.indicePregunta ?: 0}/10", 
+                style = MaterialTheme.typography.bodySmall, 
+                color = Color.Gray
+            )
         }
     }
 }
