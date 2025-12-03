@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,11 +25,15 @@ import coil.compose.AsyncImage
 import com.example.applsm.ui.AppViewModel
 import com.example.applsm.ui.UiState
 import com.example.applsm.ui.theme.*
+import com.example.applsm.ui.utils.hablar
+import com.example.applsm.ui.utils.rememberTextToSpeech
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DictionaryListScreen(nav: NavController, vm: AppViewModel, catId: Int?, catName: String) {
     var query by remember { mutableStateOf("") }
+    val tts = rememberTextToSpeech()
+    
     LaunchedEffect(catId) { vm.buscarSenas("", if (catId != -1) catId else null) }
 
     Scaffold(
@@ -74,7 +79,10 @@ fun DictionaryListScreen(nav: NavController, vm: AppViewModel, catId: Int?, catN
                             colors = CardDefaults.cardColors(containerColor = GrayBg),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier.padding(12.dp), 
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 if (!fullImgUrl.isNullOrEmpty()) {
                                     AsyncImage(
                                         model = fullImgUrl,
@@ -89,7 +97,23 @@ fun DictionaryListScreen(nav: NavController, vm: AppViewModel, catId: Int?, catN
                                     ) { Text("👐", fontSize = 24.sp) }
                                 }
                                 Spacer(Modifier.width(16.dp))
-                                Text(sena.palabra, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Text(
+                                    sena.palabra, 
+                                    fontWeight = FontWeight.Bold, 
+                                    fontSize = 18.sp,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                // Botón de TTS
+                                IconButton(
+                                    onClick = { tts?.hablar(sena.palabra) },
+                                    enabled = tts != null
+                                ) {
+                                    Icon(
+                                        Icons.Default.VolumeUp, 
+                                        "Escuchar",
+                                        tint = if (tts != null) PinkLsm else Color.Gray
+                                    )
+                                }
                             }
                         }
                     }

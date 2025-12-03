@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,11 +28,14 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.applsm.data.Sena
 import com.example.applsm.ui.theme.*
+import com.example.applsm.ui.utils.hablar
+import com.example.applsm.ui.utils.rememberTextToSpeech
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun DetailScreen(nav: NavController, sena: Sena) {
     val context = LocalContext.current
+    val tts = rememberTextToSpeech()
 
     val fullVideoUrl = remember(sena.videoUrl) { fixUrl(sena.videoUrl) }
     val fullImageUrl = remember(sena.imagenUrl) { fixUrl(sena.imagenUrl) }
@@ -61,32 +65,44 @@ fun DetailScreen(nav: NavController, sena: Sena) {
 
     DisposableEffect(Unit) { onDispose { exoPlayer.release() } }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
-        Box(modifier = Modifier.fillMaxWidth().height(300.dp).background(Color.Black)) {
-            if (isVideoValido) {
-                AndroidView(factory = { PlayerView(context).apply { player = exoPlayer } }, modifier = Modifier.fillMaxSize())
-            } else {
-                if (!fullImageUrl.isNullOrEmpty()) {
-                    AsyncImage(model = fullImageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { tts?.hablar(sena.palabra) },
+                containerColor = PinkLsm,
+                contentColor = Color.White
+            ) {
+                Icon(Icons.Default.VolumeUp, "Escuchar pronunciación")
+            }
+        }
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().background(Color.White).padding(padding)) {
+            Box(modifier = Modifier.fillMaxWidth().height(300.dp).background(Color.Black)) {
+                if (isVideoValido) {
+                    AndroidView(factory = { PlayerView(context).apply { player = exoPlayer } }, modifier = Modifier.fillMaxSize())
                 } else {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.VideocamOff, null, tint = Color.White, modifier = Modifier.size(48.dp))
-                            Text("Sin contenido visual", color = Color.White)
+                    if (!fullImageUrl.isNullOrEmpty()) {
+                        AsyncImage(model = fullImageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                    } else {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.VideocamOff, null, tint = Color.White, modifier = Modifier.size(48.dp))
+                                Text("Sin contenido visual", color = Color.White)
+                            }
                         }
                     }
                 }
+                IconButton(onClick = { nav.popBackStack() }, modifier = Modifier.padding(16.dp).align(Alignment.TopStart)) {
+                    Icon(Icons.Default.ArrowBack, "Atrás", tint = Color.White)
+                }
             }
-            IconButton(onClick = { nav.popBackStack() }, modifier = Modifier.padding(16.dp).align(Alignment.TopStart)) {
-                Icon(Icons.Default.ArrowBack, "Atrás", tint = Color.White)
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(sena.palabra, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = CyanLsm)
+                Text(sena.categoriaNombre ?: "LSM", fontSize = 16.sp, color = Color.Gray)
+                Spacer(Modifier.height(16.dp))
+                Text("Descripción", fontWeight = FontWeight.Bold)
+                Text(sena.descripcion ?: "Aprende esta seña practicando frente al espejo.", color = Color.DarkGray)
             }
-        }
-        Column(modifier = Modifier.padding(24.dp)) {
-            Text(sena.palabra, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = CyanLsm)
-            Text(sena.categoriaNombre ?: "LSM", fontSize = 16.sp, color = Color.Gray)
-            Spacer(Modifier.height(16.dp))
-            Text("Descripción", fontWeight = FontWeight.Bold)
-            Text(sena.descripcion ?: "Aprende esta seña practicando frente al espejo.", color = Color.DarkGray)
         }
     }
 }
