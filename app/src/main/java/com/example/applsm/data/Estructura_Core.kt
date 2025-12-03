@@ -52,8 +52,14 @@ data class Pregunta(
 )
 
 data class RachaResponse(
-    @SerializedName("dias_racha") val dias: Int,
-    @SerializedName("mensaje") val mensaje: String
+    @SerializedName("racha_actual") val rachaActual: Int,
+    @SerializedName("ultima_sesion") val ultimaSesion: String,
+    @SerializedName("racha_maxima") val rachaMaxima: Int
+)
+
+data class RegistrarSesionResponse(
+    val mensaje: String,
+    val fecha: String
 )
 
 data class EstadoProgreso(
@@ -222,8 +228,11 @@ interface ApiService {
     @GET("api/progreso/actual")
     suspend fun getProgresoActual(@Header("Authorization") token: String): Response<UltimoProgreso>
 
-    @GET("api/usuario/racha")
-    suspend fun getRacha(@Header("Authorization") token: String): Response<RachaResponse>
+    @GET("api/racha/actual")
+    suspend fun getRachaActual(@Header("Authorization") token: String): Response<RachaResponse>
+
+    @POST("api/sesion/registrar")
+    suspend fun registrarSesion(@Header("Authorization") token: String): Response<RegistrarSesionResponse>
 
     @GET("api/quiz/hoy")
     suspend fun getQuizDelDia(@Header("Authorization") token: String): Response<Quiz>

@@ -68,8 +68,12 @@ class AppRepository(private val context: Context) {
         RetrofitClient.api.generarQuizDinamico("Bearer $token", catId, nivel)
     }
 
-    suspend fun getRacha() = getToken()?.let { token ->
-        RetrofitClient.api.getRacha("Bearer $token")
+    suspend fun registrarSesion() = getToken()?.let { token ->
+        RetrofitClient.api.registrarSesion("Bearer $token")
+    }
+
+    suspend fun getRachaActual() = getToken()?.let { token ->
+        RetrofitClient.api.getRachaActual("Bearer $token")
     }
 
     suspend fun guardarProgreso(catId: Int, nivel: Int, indice: Int) = getToken()?.let { token ->

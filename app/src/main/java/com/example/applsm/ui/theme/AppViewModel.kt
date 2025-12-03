@@ -167,10 +167,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     Log.d("DEBUG_APP", "Último Progreso: Cat ${ultimoProgreso?.categoriaId} Nivel ${ultimoProgreso?.nivel}")
                 }
 
-                // 4. Racha
-                val rachaRes = repo.getRacha()
+                // 4. Racha - Primero registrar la sesión, luego obtener la racha
+                repo.registrarSesion() // Registra que el usuario abrió la app hoy
+                
+                val rachaRes = repo.getRachaActual()
                 if (rachaRes != null && rachaRes.isSuccessful) {
-                    rachaDias = rachaRes.body()?.dias ?: 0
+                    rachaDias = rachaRes.body()?.rachaActual ?: 0
+                    Log.d("DEBUG_APP", "Racha cargada: $rachaDias días")
                 }
                 
                 // 5. Puntos
