@@ -1,6 +1,5 @@
 package com.example.applsm.ui.screens.auth
 
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,6 +35,13 @@ fun LoginScreen(nav: NavController, vm: AppViewModel) {
     val context = LocalContext.current
     val uiState = vm.uiState
 
+    val handleLoginSuccess: (String) -> Unit = { userType ->
+        val route = if (userType == "admin") "admin_dashboard" else "main"
+        nav.navigate(route) {
+            popUpTo("login") { inclusive = true }
+        }
+    }
+
     val googleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -48,7 +54,7 @@ fun LoginScreen(nav: NavController, vm: AppViewModel) {
                     name = account.displayName ?: "Usuario Google",
                     email = account.email ?: "",
                     googleId = account.id ?: "",
-                    onSuccess = { nav.navigate("main") { popUpTo("login") { inclusive = true } } }
+                    onSuccess = handleLoginSuccess
                 )
             }
         } catch (e: ApiException) {
@@ -72,12 +78,16 @@ fun LoginScreen(nav: NavController, vm: AppViewModel) {
         Spacer(Modifier.height(16.dp))
         OutlinedTextField(value = pass, onValueChange = { pass = it }, label = { Text("Contraseña") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), singleLine = true)
         Spacer(Modifier.height(24.dp))
-        Button(onClick = { vm.login(email, pass) { nav.navigate("main") { popUpTo("login") { inclusive = true } } } }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = CyanLsm)) { if (vm.uiState is UiState.Loading) CircularProgressIndicator(color = Color.White) else Text("Entrar") }
+        Button(onClick = { vm.login(email, pass, onSuccess = handleLoginSuccess) }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = CyanLsm)) { if (vm.uiState is UiState.Loading) CircularProgressIndicator(color = Color.White) else Text("Entrar") }
         Spacer(Modifier.height(16.dp))
         OutlinedButton(onClick = { val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestIdToken(GOOGLE_WEB_CLIENT_ID).requestEmail().build(); val googleSignInClient = GoogleSignIn.getClient(context, gso); googleLauncher.launch(googleSignInClient.signInIntent) }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black)) { Text("Iniciar con Google") }
         Spacer(Modifier.height(16.dp))
         TextButton(onClick = { nav.navigate("register") }) { Text("¿No tienes cuenta? Regístrate aquí", color = PinkLsm) }
-        TextButton(onClick = { vm.guestLogin { nav.navigate("main") } }) { Text("Entrar como Invitado", color = Color.Gray) }
+        TextButton(onClick = { vm.guestLogin { userType ->
+            nav.navigate("main") {
+                popUpTo("login") { inclusive = true }
+            }
+        } }) { Text("Entrar como Invitado", color = Color.Gray) }
     }
 }
 
@@ -90,6 +100,16 @@ fun RegisterScreen(nav: NavController, vm: AppViewModel) {
     val context = LocalContext.current
     val uiState = vm.uiState
     LaunchedEffect(uiState) { if (uiState is UiState.Error) { Toast.makeText(context, uiState.message, Toast.LENGTH_LONG).show(); vm.uiState = UiState.Idle } }
+
+    val handleRegisterSuccess: (String) -> Unit = { userType ->
+        // New users are typically not admins, so we navigate to main.
+        // The logic is here just in case.
+        val route = if (userType == "admin") "admin_dashboard" else "main"
+        nav.navigate(route) {
+            popUpTo("login") { inclusive = true }
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Text("Crear Cuenta", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = CyanLsm)
         Spacer(Modifier.height(32.dp))
@@ -99,7 +119,19 @@ fun RegisterScreen(nav: NavController, vm: AppViewModel) {
         Spacer(Modifier.height(16.dp))
         OutlinedTextField(value = pass, onValueChange = { pass = it }, label = { Text("Contraseña") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(24.dp))
-        Button(onClick = { if (nombre.isNotEmpty() && email.isNotEmpty() && pass.isNotEmpty()) vm.register(nombre, email, pass) { nav.navigate("main") { popUpTo("login") { inclusive = true } } } else Toast.makeText(context, "Llena todo", Toast.LENGTH_SHORT).show() }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = PinkLsm)) { if (vm.uiState is UiState.Loading) CircularProgressIndicator(color = Color.White) else Text("Registrarse") }
+        Button(
+            onClick = {
+                if (nombre.isNotEmpty() && email.isNotEmpty() && pass.isNotEmpty()) {
+                    vm.register(nombre, email, pass, onSuccess = handleRegisterSuccess)
+                } else {
+                    Toast.makeText(context, "Llena todo", Toast.LENGTH_SHORT).show()
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = PinkLsm)
+        ) {
+            if (vm.uiState is UiState.Loading) CircularProgressIndicator(color = Color.White) else Text("Registrarse")
+        }
         TextButton(onClick = { nav.popBackStack() }) { Text("Volver", color = Color.Gray) }
     }
 }

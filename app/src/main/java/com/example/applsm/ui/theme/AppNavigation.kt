@@ -16,12 +16,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.applsm.ui.AppViewModel
+import com.example.applsm.ui.screens.admin.AdminContainerScreen
+import com.example.applsm.ui.screens.admin.AdminSenaListScreen
+import com.example.applsm.ui.screens.admin.AdminUserDetailScreen
 import com.example.applsm.ui.screens.auth.LoginScreen
 import com.example.applsm.ui.screens.auth.RegisterScreen
 import com.example.applsm.ui.screens.detail.DetailScreen
 import com.example.applsm.ui.screens.dictionary.DictionaryListScreen
-import com.example.applsm.ui.screens.main.MainScreen
 import com.example.applsm.ui.screens.quiz.QuizScreen
+import com.example.applsm.ui.theme.MainContainerScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +35,26 @@ fun AppNavigation(viewModel: AppViewModel = viewModel()) {
         composable("login") { LoginScreen(navController, viewModel) }
         composable("register") { RegisterScreen(navController, viewModel) }
 
-        composable("main") { MainScreen(navController, viewModel) }
+        composable("main") { MainContainerScreen(navController, viewModel) }
+        composable("admin_dashboard") { AdminContainerScreen(navController, viewModel) }
+
+        composable("admin_sena_list/{categoryId}/{categoryName}",
+            arguments = listOf(
+                navArgument("categoryId") { type = NavType.IntType },
+                navArgument("categoryName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val categoryId = backStackEntry.arguments?.getInt("categoryId") ?: -1
+            val categoryName = backStackEntry.arguments?.getString("categoryName") ?: ""
+            AdminSenaListScreen(navController, viewModel, categoryId, categoryName)
+        }
+
+        composable("admin_user_detail/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getInt("userId") ?: -1
+            AdminUserDetailScreen(navController, viewModel, userId)
+        }
 
         composable("dictionary_list/{catId}/{catName}") { backStackEntry ->
             val catId = backStackEntry.arguments?.getString("catId")?.toIntOrNull()
