@@ -214,9 +214,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     Log.d("DEBUG_APP", "Puntos cargados: $puntos")
                 } else {
                     Log.e("DEBUG_APP", "Error al cargar puntos: ${res?.code()}")
+                    // Si falla (ej: columna no existe), usar 0 y no crashear
+                    puntos = 0
                 }
             } catch (e: Exception) {
                 Log.e("DEBUG_APP", "Error en cargarPuntos: ${e.message}", e)
+                puntos = 0
             }
         }
     }
