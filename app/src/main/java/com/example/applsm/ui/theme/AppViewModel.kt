@@ -118,6 +118,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var puntos by mutableStateOf(0)
         private set
 
+    var estadoQuizDiario by mutableStateOf<EstadoQuizDiarioResponse?>(null)
+        private set
+
     fun cargarHome() {
         if (currentUserType == "invitado") return
 
@@ -162,6 +165,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 // 5. Puntos
                 cargarPuntos()
 
+                // 6. Estado Quiz Diario
+                cargarEstadoQuizDiario()
+
             } catch (e: Exception) {
                 Log.e("DEBUG_APP", "Excepción crítica en cargarHome: ${e.message}")
                 e.printStackTrace()
@@ -185,6 +191,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             if (res != null && res.isSuccessful) {
                 puntos = res.body()?.totalPuntos ?: (puntos + cantidad)
                 Log.d("DEBUG_APP", "Puntos sumados: $cantidad. Total: $puntos")
+            }
+        }
+    }
+
+    fun cargarEstadoQuizDiario() {
+        viewModelScope.launch {
+            val res = repo.getEstadoQuizDiario()
+            if (res != null && res.isSuccessful) {
+                estadoQuizDiario = res.body()
+                Log.d("DEBUG_APP", "Estado Quiz Diario: ${estadoQuizDiario?.completado}")
+            }
+        }
+    }
+
+    fun completarQuizDiario(puntuacion: Int) {
+        if (currentUserType == "invitado") return
+        viewModelScope.launch {
+            val res = repo.completarQuizDiario(puntuacion)
+            if (res != null && res.isSuccessful) {
+                cargarEstadoQuizDiario() // Recargar el estado
+                Log.d("DEBUG_APP", "Quiz diario completado con puntuación: $puntuacion")
             }
         }
     }

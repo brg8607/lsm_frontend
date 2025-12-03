@@ -105,12 +105,18 @@ fun HomeDashboardTab(nav: NavController, vm: AppViewModel, onGoToMap: () -> Unit
         Spacer(modifier = Modifier.height(16.dp))
 
         if (vm.currentUserType != "invitado") {
+            val estadoQuiz = vm.estadoQuizDiario
+            
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(160.dp)
-                    .clickable { nav.navigate("quiz?catId=-1&level=1") },
-                colors = CardDefaults.cardColors(containerColor = CyanLsm),
+                    .clickable(enabled = estadoQuiz?.completado != true) { 
+                        nav.navigate("quiz?catId=-1&level=1") 
+                    },
+                colors = CardDefaults.cardColors(
+                    containerColor = if (estadoQuiz?.completado == true) Color(0xFFE8F5E9) else CyanLsm
+                ),
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(4.dp)
             ) {
@@ -118,7 +124,10 @@ fun HomeDashboardTab(nav: NavController, vm: AppViewModel, onGoToMap: () -> Unit
                     Icon(
                         Icons.Default.Star,
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.2f),
+                        tint = if (estadoQuiz?.completado == true) 
+                            Color(0xFF66BB6A).copy(alpha = 0.2f) 
+                        else 
+                            Color.White.copy(alpha = 0.2f),
                         modifier = Modifier
                             .size(120.dp)
                             .align(Alignment.BottomEnd)
@@ -132,15 +141,45 @@ fun HomeDashboardTab(nav: NavController, vm: AppViewModel, onGoToMap: () -> Unit
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text("Quiz del Día", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 24.sp)
-                            Text("Gana puntos extra hoy", color = Color.White.copy(alpha = 0.9f))
+                            Text(
+                                "Quiz del Día", 
+                                fontWeight = FontWeight.Bold, 
+                                color = if (estadoQuiz?.completado == true) Color(0xFF2E7D32) else Color.White, 
+                                fontSize = 24.sp
+                            )
+                            if (estadoQuiz?.completado == true) {
+                                Text(
+                                    "¡Completado! 🎉",
+                                    color = Color(0xFF388E3C),
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    "Puntuación: ${estadoQuiz.puntuacion ?: 0}",
+                                    color = Color(0xFF388E3C),
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            } else {
+                                Text(
+                                    "Gana puntos extra hoy", 
+                                    color = Color.White.copy(alpha = 0.9f)
+                                )
+                            }
                         }
-                        Button(
-                            onClick = { nav.navigate("quiz?catId=-1&level=1") },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 0.dp)
-                        ) {
-                            Text("Jugar ahora", color = CyanLsm, fontWeight = FontWeight.Bold)
+                        if (estadoQuiz?.completado != true) {
+                            Button(
+                                onClick = { nav.navigate("quiz?catId=-1&level=1") },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 0.dp)
+                            ) {
+                                Text("Jugar ahora", color = CyanLsm, fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            Text(
+                                "Vuelve mañana para más",
+                                color = Color(0xFF66BB6A),
+                                fontSize = 14.sp
+                            )
                         }
                     }
                 }

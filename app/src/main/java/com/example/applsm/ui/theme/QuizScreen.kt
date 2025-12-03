@@ -188,6 +188,11 @@ fun QuizScreen(nav: NavController, vm: AppViewModel, catId: Int = -1, level: Int
                             vm.guardarAvance(catId, level, 10)
                             // Sumar puntos al finalizar el quiz
                             vm.sumarPuntos(score)
+                            
+                            // Si es quiz diario, marcarlo como completado
+                            if (catId == -1) {
+                                vm.completarQuizDiario(score)
+                            }
                         }
                     }
                 },

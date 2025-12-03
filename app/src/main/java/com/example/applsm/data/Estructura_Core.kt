@@ -171,6 +171,16 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body request: SumarPuntosRequest
     ): Response<PuntosResponse>
+
+    // --- QUIZ DIARIO ---
+    @GET("api/quiz/diario/estado")
+    suspend fun getEstadoQuizDiario(@Header("Authorization") token: String): Response<EstadoQuizDiarioResponse>
+
+    @POST("api/quiz/diario/completar")
+    suspend fun completarQuizDiario(
+        @Header("Authorization") token: String,
+        @Body request: CompletarQuizDiarioRequest
+    ): Response<CompletarQuizDiarioResponse>
 }
 
 data class PuntosResponse(
@@ -181,6 +191,22 @@ data class PuntosResponse(
 
 data class SumarPuntosRequest(
     val puntos: Int
+)
+
+data class EstadoQuizDiarioResponse(
+    val completado: Boolean,
+    val puntuacion: Int? = null,
+    val fecha: String
+)
+
+data class CompletarQuizDiarioRequest(
+    val puntuacion: Int
+)
+
+data class CompletarQuizDiarioResponse(
+    val mensaje: String,
+    val puntuacion: Int,
+    val fecha: String
 )
 
 object RetrofitClient {

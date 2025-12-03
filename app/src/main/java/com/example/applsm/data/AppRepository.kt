@@ -118,4 +118,22 @@ class AppRepository(private val context: Context) {
             null
         }
     }
+
+    suspend fun getEstadoQuizDiario(): Response<EstadoQuizDiarioResponse>? {
+        val token = getToken() ?: return null
+        return try {
+            RetrofitClient.api.getEstadoQuizDiario("Bearer $token")
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun completarQuizDiario(puntuacion: Int): Response<CompletarQuizDiarioResponse>? {
+        val token = getToken() ?: return null
+        return try {
+            RetrofitClient.api.completarQuizDiario("Bearer $token", CompletarQuizDiarioRequest(puntuacion))
+        } catch (e: Exception) {
+            null
+        }
+    }
 }
