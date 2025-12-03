@@ -1,4 +1,4 @@
-package com.example.applsm.ui.screens.main
+package com.example.applsm.ui.theme
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
@@ -18,7 +18,7 @@ import com.example.applsm.ui.theme.CyanLsm
 import com.example.applsm.ui.theme.PinkLsm
 
 @Composable
-fun MainScreen(rootNavController: NavController, viewModel: AppViewModel) {
+fun MainContainerScreen(rootNavController: NavController, viewModel: AppViewModel) {
     var selectedTab by remember { mutableStateOf(0) }
 
     Scaffold(
