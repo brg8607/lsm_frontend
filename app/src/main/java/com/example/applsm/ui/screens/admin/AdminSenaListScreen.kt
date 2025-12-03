@@ -107,14 +107,6 @@ fun AdminSenaListScreen(nav: NavController, vm: AppViewModel, categoryId: Int, c
     }
 
     // Diálogo para editar seña
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    // Diálogo para editar seña
     if (showEditDialog && selectedSena != null) {
         SenaDialog(
             title = "Editar Seña",
