@@ -60,14 +60,32 @@ fun AdminUserDetailScreen(nav: NavController, vm: AppViewModel, userId: Int) {
                 is UiState.Success -> {
                     if (userDetail != null) {
                         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            // Tarjeta de resumen
                             item {
-                                Text("Progreso por Categoría", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                SummaryCard(userDetail)
+                            }
+                            
+                            // Progreso por categoría
+                            item {
+                                Text(
+                                    "Progreso por Categoría",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
                             }
                             items(userDetail.progresoCategorias) {
                                 CategoryProgressItem(it)
                             }
+                            
+                            // Historial de quizzes
                             item {
-                                Text("Historial de Quizzes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp))
+                                Text(
+                                    "Historial de Quizzes",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(top = 16.dp)
+                                )
                             }
                             items(userDetail.historialQuizzes) {
                                 QuizHistoryItem(it)
@@ -104,6 +122,46 @@ fun CategoryProgressItem(progress: AdminUserCategoryProgress) {
 }
 
 @Composable
+fun SummaryCard(userDetail: com.example.applsm.data.AdminUserDetail) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Resumen", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                SummaryItem(
+                    label = "Categorías Completadas",
+                    value = "${userDetail.resumen.categoriasCompletadas}/${userDetail.resumen.totalCategorias}"
+                )
+                SummaryItem(
+                    label = "Quizzes Realizados",
+                    value = userDetail.resumen.quizzesRealizados.toString()
+                )
+                SummaryItem(
+                    label = "Promedio",
+                    value = "${userDetail.resumen.promedioPuntaje}%"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SummaryItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+        Text(label, fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
+    }
+}
+
+@Composable
 fun QuizHistoryItem(history: AdminUserQuizHistory) {
     Card(colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -113,7 +171,7 @@ fun QuizHistoryItem(history: AdminUserQuizHistory) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(history.titulo ?: "Quiz General", fontWeight = FontWeight.SemiBold)
-                Text(history.fechaRealizacion.split("T")[0], style = MaterialTheme.typography.bodySmall, color = Color.Gray) // Mostrar solo fecha
+                Text(history.fechaRealizacion.split("T")[0], style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
             Text("${history.puntaje} pts", fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
