@@ -418,6 +418,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // --- FUNCIONES DE ADMIN SEÑAS ---
+
+    suspend fun crearSena(palabra: String, categoriaId: Int, descripcion: String?) {
+        try {
+            val response = repo.crearSena(palabra, categoriaId, descripcion)
+            if (response != null && response.isSuccessful) {
+                Log.d("DEBUG_APP", "Seña creada exitosamente")
+            } else {
+                Log.e("DEBUG_APP", "Error al crear seña: ${response?.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e("DEBUG_APP", "Error de red al crear seña: ${e.message}")
+        }
+    }
+
     suspend fun editarSena(id: Int, palabra: String, categoriaId: Int, descripcion: String?) {
         try {
             val response = repo.editarSena(id, palabra, categoriaId, descripcion)

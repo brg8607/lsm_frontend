@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -24,6 +25,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminSenaListScreen(nav: NavController, vm: AppViewModel, categoryId: Int, categoryName: String) {
+    var showCreateDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedSena by remember { mutableStateOf<Sena?>(null) }
@@ -44,6 +46,14 @@ fun AdminSenaListScreen(nav: NavController, vm: AppViewModel, categoryId: Int, c
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showCreateDialog = true },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Crear Seña")
+            }
         }
     ) { padding ->
         Column(
@@ -69,6 +79,34 @@ fun AdminSenaListScreen(nav: NavController, vm: AppViewModel, categoryId: Int, c
                                 selectedSena = sena
                                 showDeleteDialog = true
                             }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // Diálogo para crear seña
+    if (showCreateDialog) {
+        SenaDialog(
+            title = "Crear Seña",
+            sena = null,
+            onDismiss = { showCreateDialog = false },
+            onConfirm = { palabra, descripcion ->
+                scope.launch {
+                    vm.crearSena(
+                        palabra = palabra,
+                        categoriaId = categoryId,
+                        descripcion = descripcion
+                    )
+                    showCreateDialog = false
+                    vm.buscarSenas(catId = categoryId)
+                }
+            }
+        )
+    }
+
+    // Diálogo para editar seña
                         )
                     }
                 }

@@ -323,6 +323,13 @@ interface ApiService {
     ): Response<Map<String, String>>
 
     // --- ADMIN SEÑAS ---
+    // --- ADMIN SEÑAS ---
+    @POST("api/admin/senas")
+    suspend fun crearSena(
+        @Header("Authorization") token: String,
+        @Body data: Map<String, Any?>
+    ): Response<Map<String, Any>>
+
     @PUT("api/admin/senas/{id}")
     suspend fun editarSena(
         @Header("Authorization") token: String,

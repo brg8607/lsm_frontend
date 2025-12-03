@@ -182,6 +182,17 @@ class AppRepository(private val context: Context) {
 
     // --- ADMIN SEÑAS ---
 
+    // --- ADMIN SEÑAS ---
+
+    suspend fun crearSena(palabra: String, categoriaId: Int, descripcion: String?) = getToken()?.let { token ->
+        val data = mapOf(
+            "palabra" to palabra,
+            "categoria_id" to categoriaId,
+            "descripcion" to descripcion
+        )
+        RetrofitClient.api.crearSena("Bearer $token", data)
+    }
+
     suspend fun editarSena(id: Int, palabra: String, categoriaId: Int, descripcion: String?) = getToken()?.let { token ->
         val data = mapOf(
             "palabra" to palabra,
