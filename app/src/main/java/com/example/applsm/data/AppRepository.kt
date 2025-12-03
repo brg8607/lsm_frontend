@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import retrofit2.Response
 
 private val Context.dataStore by preferencesDataStore("user_prefs")
 
@@ -99,5 +100,22 @@ class AppRepository(private val context: Context) {
 
     suspend fun getProgreso() = getToken()?.let {
         RetrofitClient.api.getProgreso("Bearer $it")
+    }
+    suspend fun getPuntos(): Response<PuntosResponse>? {
+        val token = getToken() ?: return null
+        return try {
+            RetrofitClient.api.getPuntosActuales("Bearer $token")
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun sumarPuntos(puntos: Int): Response<PuntosResponse>? {
+        val token = getToken() ?: return null
+        return try {
+            RetrofitClient.api.sumarPuntos("Bearer $token", SumarPuntosRequest(puntos))
+        } catch (e: Exception) {
+            null
+        }
     }
 }

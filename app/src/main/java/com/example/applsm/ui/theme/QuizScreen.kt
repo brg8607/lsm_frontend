@@ -186,6 +186,8 @@ fun QuizScreen(nav: NavController, vm: AppViewModel, catId: Int = -1, level: Int
                         } else {
                             finished = true
                             vm.guardarAvance(catId, level, 10)
+                            // Sumar puntos al finalizar el quiz
+                            vm.sumarPuntos(score)
                         }
                     }
                 },
@@ -263,15 +265,36 @@ fun MultimediaContent(pregunta: Pregunta) {
             .background(Color.Black)
     ) {
         if (isVideo && qVideoUrl != null) {
-            val exoPlayer = remember(qVideoUrl) {
-                ExoPlayer.Builder(context).build().apply {
-                    setMediaItem(MediaItem.fromUri(Uri.parse(qVideoUrl)))
-                    prepare()
-                    playWhenReady = true
-                }
+            val exoPlayer = remember { 
+                Log.d("DEBUG_VIDEO", "Creando nueva instancia de ExoPlayer")
+                ExoPlayer.Builder(context).build() 
             }
-            DisposableEffect(qVideoUrl) { onDispose { exoPlayer.release() } }
-            AndroidView(factory = { PlayerView(context).apply { player = exoPlayer } }, modifier = Modifier.fillMaxSize())
+
+            // Actualizar fuente de video cuando cambia la URL
+            LaunchedEffect(qVideoUrl) {
+                Log.d("DEBUG_VIDEO", "Cargando video: $qVideoUrl")
+                exoPlayer.setMediaItem(MediaItem.fromUri(Uri.parse(qVideoUrl)))
+                exoPlayer.prepare()
+                exoPlayer.playWhenReady = true
+            }
+
+            // Liberar recursos al salir de la pantalla o cambiar de tipo de contenido
+            DisposableEffect(Unit) { 
+                onDispose { 
+                    Log.d("DEBUG_VIDEO", "Liberando ExoPlayer")
+                    exoPlayer.release() 
+                } 
+            }
+
+            AndroidView(
+                factory = { 
+                    PlayerView(context).apply { 
+                        player = exoPlayer 
+                        useController = true // Opcional: mostrar controles
+                    } 
+                }, 
+                modifier = Modifier.fillMaxSize()
+            )
         } else if (!qImageUrl.isNullOrEmpty()) {
             AsyncImage(
                 model = qImageUrl,

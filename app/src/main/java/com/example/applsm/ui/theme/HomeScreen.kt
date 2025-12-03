@@ -61,21 +61,43 @@ fun HomeDashboardTab(nav: NavController, vm: AppViewModel, onGoToMap: () -> Unit
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Card(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(2.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // Racha Card
+            Card(
+                modifier = Modifier.weight(1f),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(2.dp)
             ) {
-                Icon(Icons.Default.LocalFireDepartment, null, tint = FireOrange, modifier = Modifier.size(32.dp))
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text("Racha de aprendizaje", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("$racha días seguidos ¡Sigue así!", color = Color.Gray, fontSize = 12.sp)
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(Icons.Default.LocalFireDepartment, null, tint = FireOrange, modifier = Modifier.size(32.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("$racha días", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Text("Racha", color = Color.Gray, fontSize = 14.sp)
+                }
+            }
+
+            // Puntuación Card
+            Card(
+                modifier = Modifier.weight(1f),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(Icons.Default.Star, null, tint = GoldStar, modifier = Modifier.size(32.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("${vm.puntos}", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Text("Puntos", color = Color.Gray, fontSize = 14.sp)
                 }
             }
         }

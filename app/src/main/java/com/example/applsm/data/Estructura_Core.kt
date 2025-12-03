@@ -76,10 +76,10 @@ data class ResultadoQuizRequest(
 )
 
 data class ProgresoCategoria(
-    @SerializedName("categoria_id") val categoriaId: Int,
-    @SerializedName("nivel_actual") val nivelActual: Int,
-    @SerializedName("preguntas_completadas") val preguntasCompletadas: Int,
-    @SerializedName("total_preguntas") val totalPreguntas: Int,
+    @SerializedName("id") val categoriaId: Int,
+    @SerializedName("nivel") val nivelActual: Int,
+    @SerializedName("indice") val preguntasCompletadas: Int,
+    @SerializedName("total_preguntas") val totalPreguntas: Int = 10, // Default a 10 si no viene
     @SerializedName("completado") val completado: Boolean,
     @SerializedName("bloqueado") val bloqueado: Boolean
 )
@@ -161,7 +161,27 @@ interface ApiService {
         @Part("categoria_id") catId: RequestBody,
         @Part video: MultipartBody.Part
     ): Response<Map<String, Any>>
+
+    // --- PUNTOS ---
+    @GET("api/puntos/actual")
+    suspend fun getPuntosActuales(@Header("Authorization") token: String): Response<PuntosResponse>
+
+    @POST("api/puntos/sumar")
+    suspend fun sumarPuntos(
+        @Header("Authorization") token: String,
+        @Body request: SumarPuntosRequest
+    ): Response<PuntosResponse>
 }
+
+data class PuntosResponse(
+    @SerializedName("puntos") val puntos: Int,
+    @SerializedName("mensaje") val mensaje: String? = null,
+    @SerializedName("total_puntos") val totalPuntos: Int? = null // Para la respuesta de sumar
+)
+
+data class SumarPuntosRequest(
+    val puntos: Int
+)
 
 object RetrofitClient {
     private const val BASE_URL = "http://10.0.2.2:3000/"

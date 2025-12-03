@@ -115,54 +115,76 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // --- CARGA DE DATOS HOME ---
+    var puntos by mutableStateOf(0)
+        private set
+
     fun cargarHome() {
+        if (currentUserType == "invitado") return
+
         viewModelScope.launch {
             Log.d("DEBUG_APP", "cargarHome: Iniciando actualización de datos...")
             try {
                 // 1. Categorías
                 val catRes = repo.getCategorias()
-                if (catRes.isSuccessful) {
+                if (catRes != null && catRes.isSuccessful) {
                     categorias = catRes.body() ?: emptyList()
                     Log.d("DEBUG_APP", "Categorías cargadas: ${categorias.size}")
+                }
+
+                // 2. Mapa de Progreso
+                val mapaRes = repo.getProgresoMapa()
+                if (mapaRes != null && mapaRes.isSuccessful) {
+                    val listaProgreso = mapaRes.body() ?: emptyList()
+                    Log.d("DEBUG_APP", "Respuesta Mapa Raw: $listaProgreso")
+                    listaProgreso.forEach { 
+                        Log.d("DEBUG_APP", " -> Item: CatID=${it.categoriaId}, Completado=${it.completado}") 
+                    }
+                    
+                    mapaProgreso = listaProgreso.associateBy { it.categoriaId }
+                    Log.d("DEBUG_APP", "Mapa Progreso Mapped Keys: ${mapaProgreso.keys}")
                 } else {
-                    Log.e("DEBUG_APP", "Error al cargar categorías: ${catRes.code()}")
+                    Log.e("DEBUG_APP", "Fallo al cargar Mapa Progreso. Code: ${mapaRes?.code()} Body: ${mapaRes?.errorBody()?.string()}")
                 }
 
-                if (currentUserType != "invitado") {
-                    // 2. Mapa de Progreso
-                    val mapaRes = repo.getProgresoMapa()
-                    if (mapaRes != null && mapaRes.isSuccessful) {
-                        mapaProgreso = mapaRes.body()?.associateBy { it.categoriaId } ?: emptyMap()
-                        Log.d("DEBUG_APP", "Mapa Progreso cargado. Elementos: ${mapaProgreso.size}")
-                    } else {
-                        Log.e("DEBUG_APP", "Fallo al cargar Mapa Progreso. Code: ${mapaRes?.code()}")
-                    }
-
-                    // 3. Último Progreso
-                    val progRes = repo.getProgresoActual()
-                    if (progRes != null && progRes.isSuccessful) {
-                        ultimoProgreso = progRes.body()
-                        Log.d("DEBUG_APP", "Último Progreso: Cat ${ultimoProgreso?.categoriaId} Nivel ${ultimoProgreso?.nivel}")
-
-                        if (ultimoProgreso != null) {
-                            estadoProgreso = EstadoProgreso(
-                                categoriaId = ultimoProgreso!!.categoriaId,
-                                nivel = ultimoProgreso!!.nivel,
-                                indice = (ultimoProgreso!!.progresoPercent * 10).toInt(),
-                                categoriaNombre = ultimoProgreso!!.categoriaNombre
-                            )
-                        }
-                    }
-
-                    // 4. Racha
-                    val rachaRes = repo.getRacha()
-                    if (rachaRes != null && rachaRes.isSuccessful) {
-                        rachaDias = rachaRes.body()?.dias ?: 0
-                    }
+                // 3. Último Progreso
+                val ultimoRes = repo.getProgresoActual()
+                if (ultimoRes != null && ultimoRes.isSuccessful) {
+                    ultimoProgreso = ultimoRes.body()
+                    Log.d("DEBUG_APP", "Último Progreso: Cat ${ultimoProgreso?.categoriaId} Nivel ${ultimoProgreso?.nivel}")
                 }
+
+                // 4. Racha
+                val rachaRes = repo.getRacha()
+                if (rachaRes != null && rachaRes.isSuccessful) {
+                    rachaDias = rachaRes.body()?.dias ?: 0
+                }
+                
+                // 5. Puntos
+                cargarPuntos()
+
             } catch (e: Exception) {
                 Log.e("DEBUG_APP", "Excepción crítica en cargarHome: ${e.message}")
                 e.printStackTrace()
+            }
+        }
+    }
+    
+    fun cargarPuntos() {
+        viewModelScope.launch {
+            val res = repo.getPuntos()
+            if (res != null && res.isSuccessful) {
+                puntos = res.body()?.puntos ?: 0
+            }
+        }
+    }
+
+    fun sumarPuntos(cantidad: Int) {
+        if (currentUserType == "invitado") return
+        viewModelScope.launch {
+            val res = repo.sumarPuntos(cantidad)
+            if (res != null && res.isSuccessful) {
+                puntos = res.body()?.totalPuntos ?: (puntos + cantidad)
+                Log.d("DEBUG_APP", "Puntos sumados: $cantidad. Total: $puntos")
             }
         }
     }
