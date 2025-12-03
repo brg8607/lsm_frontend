@@ -23,6 +23,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     var uiState by mutableStateOf<UiState>(UiState.Idle)
     var currentUserType by mutableStateOf<String?>(null)
     var currentUserName by mutableStateOf<String?>(null)
+    var currentUserToken by mutableStateOf<String?>(null)
 
     // Datos Principales
     var categorias by mutableStateOf<List<Categoria>>(emptyList())
@@ -44,6 +45,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun checkSession() {
+        viewModelScope.launch {
+            repo.userToken.collect { token -> currentUserToken = token }
+        }
         viewModelScope.launch {
             repo.userType.collect { type -> currentUserType = type }
         }

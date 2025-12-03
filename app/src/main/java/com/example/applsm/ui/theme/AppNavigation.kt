@@ -30,8 +30,19 @@ import com.example.applsm.ui.theme.MainContainerScreen
 @Composable
 fun AppNavigation(viewModel: AppViewModel = viewModel()) {
     val navController = rememberNavController()
+    
+    // Verificar sesión guardada al iniciar
+    val currentToken = viewModel.currentUserToken
+    val currentUserType = viewModel.currentUserType
+    
+    // Determinar la ruta inicial basada en la sesión guardada
+    val startDestination = when {
+        currentToken != null && currentUserType == "admin" -> "admin_dashboard"
+        currentToken != null -> "main"
+        else -> "login"
+    }
 
-    NavHost(navController = navController, startDestination = "login") {
+    NavHost(navController = navController, startDestination = startDestination) {
         composable("login") { LoginScreen(navController, viewModel) }
         composable("register") { RegisterScreen(navController, viewModel) }
 
