@@ -225,6 +225,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 repo.guardarProgreso(catId, nivel, indicePregunta)
 
                 estadoProgreso = EstadoProgreso(catId, nivel, indicePregunta)
+                
+                // ACTUALIZACIÓN LOCAL OPTIMISTA DEL MAPA
+                // Esto permite que el mapa se actualice sin esperar a recargar todo desde el servidor
+                val currentProg = mapaProgreso[catId]
+                val isCompleted = indicePregunta >= 10 // Asumimos 10 por el código del Quiz
+                
+                val newProg = currentProg?.copy(
+                    preguntasCompletadas = indicePregunta,
+                    completado = isCompleted,
+                    bloqueado = false // Si avanzamos, no está bloqueado
+                ) ?: ProgresoCategoria(
+                    categoriaId = catId,
+                    nivelActual = nivel,
+                    preguntasCompletadas = indicePregunta,
+                    totalPreguntas = 10,
+                    completado = isCompleted,
+                    bloqueado = false
+                )
+                
+                // Forzamos la actualización del estado
+                mapaProgreso = mapaProgreso.toMutableMap().apply { put(catId, newProg) }
+
                 if (indicePregunta >= 9) {
                     Log.d("DEBUG_APP", "Nivel completado, recargando home...")
                     cargarHome()

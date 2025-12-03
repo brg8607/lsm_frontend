@@ -32,7 +32,17 @@ import com.example.applsm.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LearnMapTab(nav: NavController, vm: AppViewModel) {
-    LaunchedEffect(Unit) { vm.cargarHome() }
+    // Recargar datos cada vez que la pantalla se muestra (Resume)
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                vm.cargarHome()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     val progresoMapa = vm.mapaProgreso
 
@@ -73,6 +83,12 @@ fun LearnMapTab(nav: NavController, vm: AppViewModel) {
                         if (prevProg?.completado == true) {
                             if (state == 0) state = 1
                         }
+                    }
+                    
+                    // DEBUG LOGS
+                    SideEffect {
+                        Log.d("DEBUG_MAP", "Cat: ${cat.nombre} (ID: ${cat.id}) | Index: $index | State: $state")
+                        Log.d("DEBUG_MAP", "   -> InfoProgreso: $infoProgreso")
                     }
 
                     PathNodeItem(
