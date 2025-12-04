@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,7 +36,20 @@ fun DictionaryTab(nav: NavController, vm: AppViewModel) {
     ) {
         CenterAlignedTopAppBar(
             title = { Text("Diccionario Completo", fontWeight = FontWeight.Bold) },
-            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White),
+            actions = {
+                if (vm.currentUserType == "invitado") {
+                    IconButton(onClick = {
+                        vm.logout { 
+                            nav.navigate("login") { 
+                                popUpTo("main") { inclusive = true } 
+                            } 
+                        }
+                    }) {
+                        Icon(Icons.Default.ExitToApp, contentDescription = "Salir", tint = Color.Red)
+                    }
+                }
+            }
         )
         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Button(

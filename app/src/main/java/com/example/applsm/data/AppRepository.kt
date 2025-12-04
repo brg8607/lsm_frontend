@@ -77,7 +77,9 @@ class AppRepository(private val context: Context) {
     }
 
     suspend fun getRachaActual() = getToken()?.let { token ->
-        RetrofitClient.api.getRachaActual("Bearer $token")
+        val response = RetrofitClient.api.getRachaActual("Bearer $token")
+        android.util.Log.d("DEBUG_APP", "Repository.getRachaActual() - Code: ${response.code()}, Body: ${response.body()}")
+        response
     } ?: run {
         android.util.Log.e("DEBUG_APP", "Repository.getRachaActual() - TOKEN ES NULL")
         null
