@@ -171,8 +171,36 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 // 3. Último Progreso
                 val ultimoRes = repo.getProgresoActual()
                 if (ultimoRes != null && ultimoRes.isSuccessful) {
-                    ultimoProgreso = ultimoRes.body()
-                    Log.d("DEBUG_APP", "Último Progreso: Cat ${ultimoProgreso?.categoriaId} Nivel ${ultimoProgreso?.nivel}")
+                    var progreso = ultimoRes.body()
+                    
+                    // LÓGICA DE SIGUIENTE CATEGORÍA
+                    // Si la categoría actual está completada (100%), sugerir la siguiente
+                    if (progreso != null && (progreso.progresoPercent >= 100f)) {
+                        Log.d("DEBUG_APP", "Categoría ${progreso.categoriaNombre} completada. Buscando siguiente...")
+                        
+                        // Buscar la primera categoría que NO esté completada en el mapa
+                        val siguienteCat = categorias.firstOrNull { cat ->
+                            val p = mapaProgreso[cat.id]
+                            // Si no hay progreso o no está completado, es candidata
+                            // Excluimos la actual para asegurar avance
+                            (p == null || !p.completado) && cat.id != progreso!!.categoriaId
+                        }
+                        
+                        if (siguienteCat != null) {
+                            Log.d("DEBUG_APP", "Siguiente categoría encontrada: ${siguienteCat.nombre}")
+                            progreso = UltimoProgreso(
+                                categoriaId = siguienteCat.id,
+                                categoriaNombre = siguienteCat.nombre,
+                                nivel = 1,
+                                progresoPercent = 0f
+                            )
+                        } else {
+                            Log.d("DEBUG_APP", "No hay más categorías pendientes.")
+                        }
+                    }
+
+                    ultimoProgreso = progreso
+                    Log.d("DEBUG_APP", "Último Progreso (Final): Cat ${ultimoProgreso?.categoriaId} - ${ultimoProgreso?.categoriaNombre}")
                 } else {
                     Log.e("DEBUG_APP", "Error al cargar último progreso: ${ultimoRes?.code()}")
                 }
@@ -355,6 +383,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 
                 // Forzamos la actualización del estado
                 mapaProgreso = mapaProgreso.toMutableMap().apply { put(catId, newProg) }
+
+                // ACTUALIZACIÓN LOCAL DE ULTIMO PROGRESO (Para evitar delay en UI)
+                val catName = categorias.find { it.id == catId }?.nombre
+                val percent = (indicePregunta / 10f) // 0.0 a 1.0
+                
+                ultimoProgreso = UltimoProgreso(
+                    categoriaId = catId,
+                    categoriaNombre = catName,
+                    nivel = nivel,
+                    progresoPercent = percent * 100 // 0 a 100
+                )
 
                 if (indicePregunta >= 9) {
                     Log.d("DEBUG_APP", "Nivel completado, recargando home...")

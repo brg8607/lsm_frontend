@@ -23,9 +23,24 @@ import androidx.navigation.NavController
 import com.example.applsm.ui.AppViewModel
 import com.example.applsm.ui.theme.*
 
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+
 @Composable
 fun HomeDashboardTab(nav: NavController, vm: AppViewModel, onGoToMap: () -> Unit) {
-    LaunchedEffect(Unit) { vm.cargarHome() }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                vm.cargarHome()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     val ultimoProgreso = vm.ultimoProgreso
     val racha = vm.rachaDias
