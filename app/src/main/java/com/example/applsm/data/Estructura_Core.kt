@@ -373,7 +373,7 @@ interface ApiService {
 }
 
 object RetrofitClient {
-    private const val BASE_URL = "http://10.0.2.2:3000/"
+    private const val BASE_URL = "https://lsm-backend-v2.onrender.com/"
 
     val api: ApiService by lazy {
         retrofit2.Retrofit.Builder()
